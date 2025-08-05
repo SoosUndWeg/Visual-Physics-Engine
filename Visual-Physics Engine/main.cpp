@@ -7,8 +7,18 @@
 
 #include <iostream>
 
+#include <SFML/Graphics.hpp>
+
+#include "core/Application.hpp"
+
 int main(int argc, const char * argv[]) {
-    // insert code here...
-    std::cout << "Hello, World!\n";
-    return 0;
+    
+    try {
+        Application app;
+        app.run();
+    } catch (const std::exception& e) {
+        std::cerr << "An error occurred: " << e.what() << std::endl;
+    }
+    
+    return EXIT_SUCCESS;
 }

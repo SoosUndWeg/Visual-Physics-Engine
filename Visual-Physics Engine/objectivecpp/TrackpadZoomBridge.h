@@ -1,5 +1,5 @@
 //
-//  TrackZoomBridge.h
+//  TrackpadZoomBridge.h
 //  Visual-Physics Engine
 //
 //  Created by Kilian Brecht on 03.08.25.
@@ -12,5 +12,5 @@ public:
     virtual ~IZoomReceiver() = default;
 };
 
-void InitTrackpadZoom(void* nativeWindowHandle, IZoomReceiver* receiver);
+void InitTrackpadZoom(IZoomReceiver* receiver, const char* windowTitle);
 

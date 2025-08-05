@@ -1,11 +1,9 @@
 //
-//  TrackZoomBridge.mm
+//  TrackpadZoomBridge.mm
 //  Visual-Physics Engine
 //
 //  Created by Kilian Brecht on 03.08.25.
 //
-
-// TrackpadZoomBridge.mm
 #import <Cocoa/Cocoa.h>
 #include "TrackpadZoomBridge.h"
 
@@ -24,11 +22,16 @@ static IZoomReceiver* s_receiver = nullptr;
 
 @end
 
-void InitTrackpadZoom(void* nativeWindowHandle, IZoomReceiver* receiver) {
+void InitTrackpadZoom(IZoomReceiver* receiver, const char* windowTitle) {
     s_receiver = receiver;
-    NSWindow* window = (__bridge NSWindow*)nativeWindowHandle;
-    ZoomGestureCatcher* zoomView = [[ZoomGestureCatcher alloc] initWithFrame:window.contentView.bounds];
-    zoomView.autoresizingMask = NSViewWidthSizable | NSViewHeightSizable;
-    [window.contentView addSubview:zoomView];
-    [window makeFirstResponder:zoomView];
+    NSArray* windows = [NSApp windows];
+    for (NSWindow* win in windows) {
+        if ([[win title] isEqualToString:[NSString stringWithUTF8String:windowTitle]]) {
+            ZoomGestureCatcher* zoomView = [[ZoomGestureCatcher alloc] initWithFrame:win.contentView.bounds];
+            zoomView.autoresizingMask = NSViewWidthSizable | NSViewHeightSizable;
+            [win.contentView addSubview:zoomView];
+            [win makeFirstResponder:zoomView];
+            break;
+        }
+    }
 }
