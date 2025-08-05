@@ -44,16 +44,8 @@ void XMarker::update() {
     setPosition(m_position);
 }
 
-/**
-    * Sets the position of the marker in the scene.
-    * The position is adjusted based on the current scene translation and scale.
-    * The x coordinate gets adjusted to the scene's translation and scale,
-    * while the y coordinate is used as is, with an offset for the label.
- 
-    * @param position The new position of the marker in the scene.
- */
+
 void XMarker::setPosition(sf::Vector2f position) {
-    std::print("Marker position set to: ({}, {})\n", position.x, position.y);
     sf::Vector2f baseViewSize = m_scene.getViewSize();
     sf::Vector2f scaleFactor = m_scene.getScale();
     sf::Vector2f translation = m_scene.getTranslation();
@@ -62,8 +54,8 @@ void XMarker::setPosition(sf::Vector2f position) {
     viewSize.x = baseViewSize.x / scaleFactor.x;
     viewSize.y = baseViewSize.y / scaleFactor.y;
     
-    m_marker[0].position = {position.x, position.y - config::coordinateSystem::markerLabelOffset * 4};
-    m_marker[1].position = {position.x,  position.y + config::coordinateSystem::markerLabelOffset * 4};
+    m_marker[0].position = {position.x, m_scene.screenToWorld({0, position.y}).y - config::coordinateSystem::markerLength * 4};
+    m_marker[1].position = {position.x, m_scene.screenToWorld({0, position.y}).y + config::coordinateSystem::markerLength * 4};
     m_label->setPosition({(position.x + translation.x) , (config::coordinateSystem::markerLabelOffset * 2 + translation.y) / viewSize.y * config::window::size.y});
     //m_label->setPosition({position.x, position.y + config::coordinateSystem::markerLabelOffset * 2});
     

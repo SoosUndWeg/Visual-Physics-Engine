@@ -143,7 +143,7 @@ void XAxis::createMarkers() {
 
 int XAxis::calculateMarkerCount() const {
     float worldWidth = m_scene.getViewSize().x / m_scene.getScale().x;
-    return static_cast<int>(worldWidth / calculateMarkerSpacing()) + 2;
+    return static_cast<int>(worldWidth / calculateMarkerSpacing()) * 2 + 4; // Großzügiger Puffer
 }
 
 float XAxis::calculateMarkerSpacing() const {
@@ -160,21 +160,46 @@ float XAxis::calculateMarkerSpacing() const {
 
 void XAxis::updateMarkerPositions(float spacing, float yPos) {
     sf::Vector2f translation = m_scene.getTranslation();
+    float viewWidth = m_scene.getViewSize().x / m_scene.getScale().x;
 
-    // Bestimme Startpunkt (gerundet zur nächsten Marker-Position)
-    float startX = spacing * std::floor((translation.x - (m_scene.getViewSize().x / m_scene.getScale().x)) / spacing);
-    std::print("Start X: {}\n", startX);
+    // explizite Berechnung linker und rechter Bildschirmrand in Weltkoordinaten
+    float leftWorld = translation.x - viewWidth / 2.f;
+    float rightWorld = translation.x - viewWidth / 2.f;
+    std::print("LeftWorld: {}, RightWorld: {}\n", leftWorld, rightWorld);
 
+    // Erster Marker links des linken Randes
+    float startX = spacing * std::floor(leftWorld / spacing) - spacing;
+    float endX = spacing * std::ceil(rightWorld / spacing) + spacing;
+    std::print("StartX: {}, EndX: {}\n", startX, endX);
+
+    for (auto& marker : m_markers) {
+        marker.setVisible(false);
+    }
+    
+    float screenSpacing = m_scene.screenToWorld({spacing, 0}).x;
+    std::print("ScreenSpacing: {}, MarkerSpacing: {}\n", screenSpacing, spacing);
+    
+    int i = 0;
+    for (float x = startX; x <= endX; x += spacing * 100) {
+        if (i >= m_markers.size()) {
+            std::print("Warning: Marker index {} exceeds marker size {}\n", i, m_markers.size());
+            break; // Sicherheitsabfrage, um Überlauf zu vermeiden
+        }
+        std::print("Marker {}: {}\n", i, x);
+        sf::Vector2f screenPos = m_scene.worldToScreen({x, yPos});
+        m_markers[i].setPosition(screenPos);
+        m_markers[i].setLabel(std::format("{:.2f}", x));
+        m_markers[i].setVisible(true);
+        i++;
+    }
+    
+    /*
     for (size_t i = 0; i < m_markers.size(); ++i) {
-        float xPos = startX + i * spacing;
+        float xPos = startX + static_cast<float>(i) * spacing;
 
-        sf::Vector2f worldPos{xPos, yPos};
-        sf::Vector2f screenPos = m_scene.worldToScreen(worldPos);
+        if (xPos >= leftWorld - spacing && xPos <= rightWorld + spacing) {
+            sf::Vector2f screenPos = m_scene.worldToScreen({xPos, yPos});
 
-        if (screenPos.x >= -static_cast<float>(config::window::size.x) &&
-            screenPos.x <= static_cast<float>(config::window::size.x)) {
-            
-            std::print("Marker {}: World Position: ({:.2f}, {:.2f}), Screen Position: ({:.2f}, {:.2f})\n", i, worldPos.x, worldPos.y, screenPos.x, screenPos.y);
             m_markers[i].setPosition(screenPos);
             m_markers[i].setLabel(std::format("{:.2f}", xPos));
             m_markers[i].setVisible(true);
@@ -182,7 +207,9 @@ void XAxis::updateMarkerPositions(float spacing, float yPos) {
             m_markers[i].setVisible(false);
         }
     }
+     */
 }
+
 
 
 //***** YAxis Implementation *****

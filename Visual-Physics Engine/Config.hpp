@@ -33,6 +33,7 @@ namespace config {
     namespace coordinateSystem {
         constexpr float gridSpacing = 100.f;
         constexpr float gridLength = 10.f;
+        constexpr float markerLength = 3.f;
         constexpr float markerLabelSize = 20.f;
         constexpr float markerLabelOffset = 0.05f;
         constexpr float windowToCoordinateFactor = 0.01f;
