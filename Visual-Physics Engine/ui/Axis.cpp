@@ -7,20 +7,29 @@
 #include "Axis.hpp"
 
 #include <print>
+#include <format>
 
 #include "../Config.hpp"
 #include "../core/Scene.hpp"
 
-XAxis::XAxis(std::string name, Scene& scene, const sf::Font& font) : m_font(font),
-                                                                            m_scene(scene),
-                                                                            m_xAxisLabel(font, name, 30) {
+XAxis::XAxis(std::string name, Scene& scene, sf::Font& font) : m_font(font),
+                                                               m_scene(scene),
+                                                               m_xAxisLabel(font, name, 30) {
     
     initialize();
 }
     
 void XAxis::initialize() {
-    
+    sf::Vector2f baseViewSize = m_scene.getViewSize();
+    sf::Vector2f scaleFactor = m_scene.getScale();
     sf::Vector2f translation = m_scene.getTranslation();
+    
+    sf::Vector2f viewSize;
+    viewSize.x = baseViewSize.x / scaleFactor.x;
+    viewSize.y = baseViewSize.y / scaleFactor.y;
+    
+    // Marker spacing
+    m_markerSpacing = (1 / viewSize.x * config::window::size.x);
     
     if (translation.x < 1e-15)
         translation.x = 0.f;
@@ -42,14 +51,22 @@ void XAxis::initialize() {
     
     // Label
     m_xAxisLabel.setPosition({xMin + config::hud::distanceFromWindowBorder, config::coordinateSystem::markerLabelOffset * 2.f});
+    
+    // Marker
+    createMarkers();
 }
 
 void XAxis::draw(sf::RenderTarget& target, sf::RenderStates states) const {
     target.draw(m_xAxis, states);
     target.draw(m_xAxisLabel, states);
+    
+    for (const auto& marker : m_markers) {
+        target.draw(marker, states);
+    }
 }
 
 void XAxis::update() {
+    // Axis & Label
     sf::Vector2f baseViewSize = m_scene.getViewSize();
     sf::Vector2f scaleFactor = m_scene.getScale();
     sf::Vector2f translation = m_scene.getTranslation();
@@ -70,6 +87,27 @@ void XAxis::update() {
     }
     
     setWorldPosition(y);
+    
+    // Marker
+    /*
+    for (auto& marker : m_markers) {
+        marker.setVisible(false);
+    }
+    
+    int min = std::floor((- static_cast<float>(config::window::size.x) + translation.x) / m_markerSpacing);
+    std::print("Min: {}\n", min);
+    int max = std::ceil((static_cast<float>(config::window::size.x) + translation.x) / m_markerSpacing);
+    std::print("Max: {}\n", max);
+    
+    for (int i = min; i <= max; ++i) {
+        double x = m_scene.screenToWorld({static_cast<float>(static_cast<double>(i) * m_markerSpacing), 0}).x;
+        
+        m_markers[i - min].setPosition({static_cast<float>(x), y});
+        m_markers[i - min].setVisible(true);
+        m_markers[i - min].setLabel(std::format("{:.0f}", i + translation.x/ m_markerSpacing));
+    }
+    */
+    updateMarkerPositions(calculateMarkerSpacing(), y);
 }
 
 sf::Vector2f XAxis::getPosition() const {
@@ -88,15 +126,71 @@ void XAxis::setWorldPosition(double y) {
     m_xAxis[0].position.y = static_cast<float>(y);
     m_xAxis[1].position.y = static_cast<float>(y);
 
+}
 
+void XAxis::createMarkers() {
+    m_markers.clear();
+    
+    float markerCount = calculateMarkerCount();
+    
+    m_markers.reserve(markerCount);
+    
+    for (int i = 0; i < markerCount; ++i) {
+        
+        m_markers.emplace_back(m_scene, m_font, "", sf::Vector2f({0.f, 0.f}));
+    }
+}
+
+int XAxis::calculateMarkerCount() const {
+    float worldWidth = m_scene.getViewSize().x / m_scene.getScale().x;
+    return static_cast<int>(worldWidth / calculateMarkerSpacing()) + 2;
+}
+
+float XAxis::calculateMarkerSpacing() const {
+    
+    // Umrechnung: Bildschirmbreite -> Weltbreite
+    float worldWidth = m_scene.getViewSize().x / m_scene.getScale().x;
+    
+    // Verhältnis Bildschirm zu Welt
+    float ratio = (2.f * config::window::size.x) / worldWidth;
+    
+    // Dynamischer Abstand
+    return m_markerSpacing / ratio;
+}
+
+void XAxis::updateMarkerPositions(float spacing, float yPos) {
+    sf::Vector2f translation = m_scene.getTranslation();
+
+    // Bestimme Startpunkt (gerundet zur nächsten Marker-Position)
+    float startX = spacing * std::floor((translation.x - (m_scene.getViewSize().x / m_scene.getScale().x)) / spacing);
+    std::print("Start X: {}\n", startX);
+
+    for (size_t i = 0; i < m_markers.size(); ++i) {
+        float xPos = startX + i * spacing;
+
+        sf::Vector2f worldPos{xPos, yPos};
+        sf::Vector2f screenPos = m_scene.worldToScreen(worldPos);
+
+        if (screenPos.x >= -static_cast<float>(config::window::size.x) &&
+            screenPos.x <= static_cast<float>(config::window::size.x)) {
+            
+            std::print("Marker {}: World Position: ({:.2f}, {:.2f}), Screen Position: ({:.2f}, {:.2f})\n", i, worldPos.x, worldPos.y, screenPos.x, screenPos.y);
+            m_markers[i].setPosition(screenPos);
+            m_markers[i].setLabel(std::format("{:.2f}", xPos));
+            m_markers[i].setVisible(true);
+        } else {
+            m_markers[i].setVisible(false);
+        }
+    }
 }
 
 
+//***** YAxis Implementation *****
 
-YAxis::YAxis(std::string name, Scene& scene, const sf::Font& font) : m_font(font),
+
+YAxis::YAxis(std::string name, Scene& scene, sf::Font& font) : m_font(font),
                                                                             m_scene(scene),
                                                                             m_yAxisLabel(font, name, 30) {
-    
     initialize();
 }
     

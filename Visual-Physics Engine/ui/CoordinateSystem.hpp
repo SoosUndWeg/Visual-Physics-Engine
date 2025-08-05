@@ -36,8 +36,6 @@ private:
     
     XAxis m_xAxis;
     YAxis m_yAxis;
-    
-    std::vector<XMarker> m_xMarkers;
 
     sf::Font& m_font;
 };

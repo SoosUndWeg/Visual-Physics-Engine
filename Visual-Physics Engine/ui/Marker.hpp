@@ -10,22 +10,22 @@
 #include <SFML/Graphics.hpp>
 
 class Scene;
-class XAxis;
 
 
 class XMarker : public sf::Drawable {
 public:
-    XMarker(Scene& scene, sf::Font& font, XAxis& xAxis, const std::string& labelText, double  position);
+    XMarker(Scene& scene, sf::Font& font, const std::string& labelText, sf::Vector2f position);
     
     void draw(sf::RenderTarget& target, sf::RenderStates states) const override;
     
     void update();
     
-    void setPosition(double x);
-    double getPosition() const;
+    void setPosition(sf::Vector2f position);
+    sf::Vector2f getPosition() const;
     
     void setLabel(const std::string& labelText);
     void setColor(const sf::Color& color);
+    void setVisible(const bool visible);
     
     
 private:
@@ -35,11 +35,10 @@ private:
     Scene& m_scene;
     
     sf::VertexArray m_marker;
-    double m_position;
+    sf::Vector2f m_position;
     
     sf::Font& m_font;
     std::optional<sf::Text> m_label;
-    XAxis& m_xAxis;
 };
 
 

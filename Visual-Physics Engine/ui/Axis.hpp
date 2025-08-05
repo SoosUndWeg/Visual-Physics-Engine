@@ -9,6 +9,8 @@
 
 #include <SFML/Graphics.hpp>
 
+#include "Marker.hpp"
+
 
 class Scene;
 
@@ -16,7 +18,7 @@ class Scene;
 class XAxis : public sf::Drawable {
 public:
     
-    XAxis(std::string name, Scene& scene, const sf::Font& font);
+    XAxis(std::string name, Scene& scene, sf::Font& font);
     
     void draw(sf::RenderTarget& target, sf::RenderStates states) const override;
     
@@ -30,19 +32,27 @@ private:
     
     void initialize();
     
+    void createMarkers();
+    int calculateMarkerCount() const;
+    float calculateMarkerSpacing() const;
+    void updateMarkerPositions(float spacing, float yPos);
+    
 private:
     sf::VertexArray m_xAxis;
     sf::Text m_xAxisLabel;
     
+    std::vector<XMarker> m_markers;
+    double m_markerSpacing = 0.0;
+    
     Scene& m_scene;
-    const sf::Font& m_font;
+    sf::Font& m_font;
 };
 
 
 class YAxis : public sf::Drawable {
 public:
     
-    YAxis(std::string name, Scene& scene, const sf::Font& font);
+    YAxis(std::string name, Scene& scene, sf::Font& font);
     
     void draw(sf::RenderTarget& target, sf::RenderStates states) const override;
     
@@ -59,7 +69,7 @@ private:
     sf::Text m_yAxisLabel;
     
     Scene& m_scene;
-    const sf::Font& m_font;
+    sf::Font& m_font;
 };
 
 #endif // AXIS_HPP

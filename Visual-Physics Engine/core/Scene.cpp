@@ -10,12 +10,13 @@
 #include "../Config.hpp"
 #include "EventHandler.hpp"
 
-Scene::Scene(sf::Font& font, sf::Clock& clock) : m_viewSize({config::window::resolution.x / config::window::pixelPerWorldUnit,
+Scene::Scene(sf::Font& font, sf::Clock& clock) : m_translationVector({0, 0}),
+                                     m_viewSize({config::window::resolution.x / config::window::pixelPerWorldUnit,
                                                  config::window::resolution.y / config::window::pixelPerWorldUnit}),
                                      m_clock(clock),
                                      m_coordinateSystem(font, *this),
-                                     m_function1("f", "f(x, t) = sin(x^2 - t)", *this, sf::Color::Green),
-                                     m_function2("g", "g(x, t) = sin(x^2 + t)", *this, sf::Color::Red) {
+                                     m_function1("f", "f(x, t) = sin(x - t)", *this, sf::Color::Green),
+                                     m_function2("g", "g(x, t) = sin(x + t)", *this, sf::Color::Red) {
     
     initialize();
 }
@@ -138,7 +139,7 @@ sf::Vector2f Scene::worldToScreen(sf::Vector2f worldPos) const {
     sf::Vector2f windowSize = static_cast<sf::Vector2f>(config::window::size);
 
     sf::Vector2f viewSizeZoomed = { m_viewSize.x / m_scaleVector.x, m_viewSize.y / m_scaleVector.y };
-
+    
     float px = (worldPos.x - m_translationVector.x) / viewSizeZoomed.x * windowSize.x;
     float py = -(worldPos.y - m_translationVector.y) / viewSizeZoomed.y * windowSize.y;
 
@@ -149,8 +150,8 @@ sf::Vector2f Scene::screenToWorld(sf::Vector2f screenPos) const {
     sf::Vector2f windowSize = static_cast<sf::Vector2f>(config::window::size);
     sf::Vector2f viewSizeZoomed = { m_viewSize.x / m_scaleVector.x, m_viewSize.y / m_scaleVector.y };
 
-    float x = ((screenPos.x - windowSize.x / 2.0f) / windowSize.x) * viewSizeZoomed.x + m_translationVector.x;
-    float y = -((screenPos.y - windowSize.y / 2.0f) / windowSize.y) * viewSizeZoomed.y + m_translationVector.y;
+    float x = (screenPos.x / windowSize.x) * viewSizeZoomed.x + m_translationVector.x;
+    float y = -(screenPos.y / windowSize.y) * viewSizeZoomed.y + m_translationVector.y;
 
     return {x, y};
 }
