@@ -16,7 +16,9 @@ public:
     enum class TokenType {
         Identifier,
         Number,
-        BinaryOperator,
+        BinaryPMOperator,
+        BinaryMDOperator,
+        BinaryPowerOperator,
         UnaryOperator,
         Punctuation,
         Delimiter,

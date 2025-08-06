@@ -12,6 +12,7 @@
 #include <string>
 #include <numeric>
 #include <vector>
+#include <functional>
 
 using Environment = std::unordered_map<std::string, double>;
 
@@ -66,16 +67,35 @@ struct ConstantNode : public ASTNode {
 };
 
 struct FunctionNode : public ASTNode {
-    std::string function; // e.g., "sin", "cos", "tan"
+    std::string functionName;
     std::unique_ptr<ASTNode> argument;
+    
+    std::unordered_map<std::string, std::function<double(double)>> functionMap = {
+        {"sin", [](double x) { return std::sin(x); }},
+        {"cos", [](double x) { return std::cos(x); }},
+        {"tan", [](double x) { return std::tan(x); }},
+        {"sqrt", [](double x) {
+            if (x < 0) {
+                return 0.0;
+            }
+            return std::sqrt(x);
+        }},
+        {"exp", [](double x) { return std::exp(x); }},
+        {"log", [](double x) {
+            if (x <= 0) {
+                return 0.0;;
+            }
+            return std::log(x);
+        }},
+        {"abs", [](double x) { return std::abs(x); }}
+    };
 
-    FunctionNode(const std::string& function, std::unique_ptr<ASTNode> argument)
-        : function(function), argument(std::move(argument)) {}
+    FunctionNode(const std::string& function, std::unique_ptr<ASTNode> argument);
 
     double evaluate(const Environment& env) const override;
 
     std::string toString() const override {
-        return function + "(" + argument->toString() + ")";
+        return functionName + "(" + argument->toString() + ")";
     }
 };
 
@@ -96,6 +116,18 @@ struct FunctionHeaderNode : public ASTNode {
     std::size_t getParameterCount() const;
 
     double evaluateWithParameters(const std::vector<double>& args) const;
+};
+
+
+struct NegationNode : public ASTNode {
+    std::unique_ptr<ASTNode> m_node;
+
+    NegationNode(std::unique_ptr<ASTNode> node);
+
+    double evaluate(const Environment& env) const override;
+        
+    std::string toString() const override;
+
 };
 
 #endif // AST_HPP

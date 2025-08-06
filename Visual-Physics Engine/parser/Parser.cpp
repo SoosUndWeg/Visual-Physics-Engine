@@ -7,7 +7,7 @@
 
 #include "Parser.hpp"
 
-#include <iostream>
+#include <print>
 
 Parser::Parser()
     : m_tokenizer("") {
@@ -71,6 +71,8 @@ std::unique_ptr<ASTNode> ShuntingYard::parse() {
     
     for (int i = 0; i < m_tokens.size(); ++i) {
         
+        std::print("Token: {}\n", m_tokens[i].first);
+        
         auto& token = m_tokens[i];
         
         if (token.second == Tokenizer::TokenType::Number) {
@@ -86,23 +88,45 @@ std::unique_ptr<ASTNode> ShuntingYard::parse() {
                     // Remove the next token from the list
                     i++;
                     
+                } else {
+                    
+                    break;
                 }
             }
             
+            std::print("Parsed number: {}\n", token.first);
+            
             // Push the number to the output stack as a ConstantNode
-            outputStack.push(std::make_unique<ConstantNode>(std::stod(token.first)));
+            if (lastToken.second == Tokenizer::TokenType::UnaryOperator){
+                std::print("L-> Got a p/m\n");
+                outputStack.push(std::make_unique<ConstantNode>(std::stod(lastToken.first + token.first)));
+                
+            } else {
+                std::print("L-> Got a number {}\n", token.first);
+                outputStack.push(std::make_unique<ConstantNode>(std::stod(token.first)));
+            }
             
             lastToken = token;
             
-        } else if (token.second == Tokenizer::TokenType::BinaryOperator) {
+        } else if (token.second == Tokenizer::TokenType::BinaryPMOperator ||
+                   token.second == Tokenizer::TokenType::BinaryMDOperator ||
+                   token.second == Tokenizer::TokenType::BinaryPowerOperator) {
             
-            if (lastToken.second == Tokenizer::TokenType::BinaryOperator ||
+            if (token.second == Tokenizer::TokenType::BinaryPMOperator &&
+                (lastToken.second == Tokenizer::TokenType::BinaryPMOperator ||
+                lastToken.second == Tokenizer::TokenType::BinaryMDOperator ||
+                lastToken.second == Tokenizer::TokenType::BinaryPowerOperator ||
                 lastToken.second == Tokenizer::TokenType::Unknown ||
                 lastToken.second == Tokenizer::TokenType::Function ||
-                lastToken.second == Tokenizer::TokenType::BracketOpen) {
+                lastToken.second == Tokenizer::TokenType::BracketOpen)) {
                 
                 lastToken = token;
                 lastToken.second = Tokenizer::TokenType::UnaryOperator;
+                
+                if (lastToken.first == "-") {
+                    
+                    opStack.push(lastToken);
+                }
                 
             } else {
                 
@@ -124,11 +148,14 @@ std::unique_ptr<ASTNode> ShuntingYard::parse() {
                     // Prevent out of bounds access
                     if (j + i > m_tokens.size() - 1) {
                         
+                        isFunction = false;
                         break;
                     }
+                    std::print("Checking function {} against token {}\n", func, m_tokens[i + j].first);
                     
                     // Compare the tokens with the function name
                     if (m_tokens[i + j].first[0] != func[j]) {
+                        
                         isFunction = false;
                         break;
                     }
@@ -137,13 +164,22 @@ std::unique_ptr<ASTNode> ShuntingYard::parse() {
                 if (isFunction) {
                     
                     // Set the token type to Function
+                    lastToken = token;
                     token.first = func;
                     token.second = Tokenizer::TokenType::Function;
+                    
+                    while ((isLeftAssociative(token.first[0]) && precedence(token.second) <= precedence(lastToken.second)) ||
+                           (!isLeftAssociative(token.first[0]) && precedence(token.second) < precedence(lastToken.second))) {
+                        
+                        handleOperator(opStack, outputStack);
+                    }
                     
                     // Skip the tokens that were part of the function identifier
                     i += func.size() - 1;
                     
                     pushToOpStack(opStack, outputStack, token, lastToken);
+                    
+                    
                     
                     break;
                 }
@@ -185,7 +221,7 @@ std::unique_ptr<ASTNode> ShuntingYard::parse() {
             }
 
             if (!isFunction && !isConstant) {
-                
+                std::print("Identifier found: {} {}\n", lastToken.first, token.first);
                 // If the identifier is not a function or constant, treat it as a variable
                 if (lastToken.second == Tokenizer::TokenType::UnaryOperator && lastToken.first == "-") {
                     
@@ -212,13 +248,26 @@ std::unique_ptr<ASTNode> ShuntingYard::parse() {
             
             // Pop operators from the stack until an opening bracket is found
             while (!opStack.empty() && opStack.top().second != Tokenizer::TokenType::BracketOpen) {
-                
+                std::print("-->Handling operator: {}\n", opStack.top().first);
                 handleOperator(opStack, outputStack);
                 
             }
-            
-            // Remove the opening bracket
+            std::print("Stack before popping: {}\n", opStack.top().first);
             opStack.pop();
+            token = opStack.top();
+            std::print("STack after popping: {}\n", token.first);
+            
+            if (!opStack.empty() && token.second == Tokenizer::TokenType::Function) {
+                std::print("Function before bracket found {}\n", token.first);
+                handleOperator(opStack, outputStack);
+                
+                lastToken = token;
+                
+            } else {
+                
+                lastToken = token;
+            }
+
         }
     }
     
@@ -228,6 +277,7 @@ std::unique_ptr<ASTNode> ShuntingYard::parse() {
     }
     
     isStackEmpty(outputStack);
+    
     auto node = std::move(outputStack.top());
     outputStack.pop();
     
@@ -245,18 +295,27 @@ std::unique_ptr<ASTNode> ShuntingYard::parse() {
     return std::move(funcHeaderNode);
 }
 
-int ShuntingYard::precedence(char op) const {
-    switch (op) {
-        case '+':
-        case '-':
-            return 1;
-        case '*':
-        case '/':
-            return 2;
-        case '^':
-            return 3;
+int ShuntingYard::precedence(Tokenizer::TokenType type) const {
+    switch (type) {
+        case Tokenizer::TokenType::BinaryPMOperator:
+            
+            return 1; // +, -
+            
+        case Tokenizer::TokenType::BinaryMDOperator:
+            
+            return 2; // *, /
+            
+        case Tokenizer::TokenType::BinaryPowerOperator:
+            
+            return 3; // ^
+            
+        case Tokenizer::TokenType::Function:
+            
+            return 4; // Function calls
+            
         default:
-            return 0;
+            
+            return 0; // Unknown or no precedence
     }
 }
 
@@ -288,8 +347,8 @@ void ShuntingYard::pushToOpStack(std::stack<std::pair<std::string, Tokenizer::To
                                  std::pair<std::string, Tokenizer::TokenType>& lastToken) {
     
     while (!opStack.empty() &&
-           ((isLeftAssociative(token.first[0]) && precedence(opStack.top().first[0]) >= precedence(token.first[0])) ||
-            (!isLeftAssociative(token.first[0]) && precedence(opStack.top().first[0]) > precedence(token.first[0])))) {
+           ((isLeftAssociative(token.first[0]) && precedence(opStack.top().second) >= precedence(token.second)) ||
+            (!isLeftAssociative(token.first[0]) && precedence(opStack.top().second) > precedence(token.second)))) {
         
         handleOperator(opStack, outputStack);
     }
@@ -312,7 +371,9 @@ void ShuntingYard::handleOperator(std::stack<std::pair<std::string, Tokenizer::T
         
         outputStack.push(setupFuncHeader(op));
         
-    } else if (op.second == Tokenizer::TokenType::BinaryOperator) {
+    } else if (op.second == Tokenizer::TokenType::BinaryPMOperator ||
+               op.second == Tokenizer::TokenType::BinaryMDOperator ||
+               op.second == Tokenizer::TokenType::BinaryPowerOperator) {
         
         isStackEmpty(outputStack);
         
@@ -325,6 +386,14 @@ void ShuntingYard::handleOperator(std::stack<std::pair<std::string, Tokenizer::T
         outputStack.pop();
         
         outputStack.push(std::make_unique<BinaryOperationNode>(std::move(left), std::move(right), op.first[0]));
+        
+    } else if (op.second == Tokenizer::TokenType::UnaryOperator) {
+        
+        isStackEmpty(outputStack);
+        auto arg = std::move(outputStack.top());
+        outputStack.pop();
+        
+        outputStack.push(std::make_unique<NegationNode>(std::move(arg)));
     
     } else if (op.second == Tokenizer::TokenType::Function) {
         
@@ -335,8 +404,23 @@ void ShuntingYard::handleOperator(std::stack<std::pair<std::string, Tokenizer::T
         
         outputStack.push(std::make_unique<FunctionNode>(op.first, std::move(arg)));
         
+    } else if (op.second == Tokenizer::TokenType::BracketClose) {
+        
+        while (!opStack.empty() && opStack.top().second != Tokenizer::TokenType::BracketOpen) {
+            
+            handleOperator(opStack, outputStack);
+        }
+        
+    } else if (op.second == Tokenizer::TokenType::BracketOpen) {
+        
+        if (!opStack.empty() && opStack.top().second == Tokenizer::TokenType::Function) {
+            
+            handleOperator(opStack, outputStack);
+            
+        }
+        
     } else {
         
-        throw std::runtime_error("Unknown operator type in stack");
+        throw std::runtime_error("Unknown operator " + op.first + " type in stack");
     }
 }

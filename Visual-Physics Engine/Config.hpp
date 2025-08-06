@@ -17,7 +17,7 @@ namespace config {
         constexpr sf::Vector2i position = {100, 100};
         constexpr float framerateLimit = 120.f;
         constexpr std::string title = "Visual-Physik Engine";
-        constexpr float pixelPerWorldUnit = 100.f;
+        constexpr float pixelPerWorldUnit = 192.f;
     }
 
     namespace scene {
@@ -36,6 +36,7 @@ namespace config {
         constexpr float markerLength = 3.f;
         constexpr float markerLabelSize = 20.f;
         constexpr float markerLabelOffset = 0.05f;
+        constexpr int markerCount = 20;
         constexpr float windowToCoordinateFactor = 0.01f;
     }
 

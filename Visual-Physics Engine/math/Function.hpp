@@ -25,12 +25,12 @@ public:
     void draw(sf::RenderTarget& target, sf::RenderStates states) const override;
 
     void calculateInterval();
-    void calculateInterval(double t);
+    void calculateInterval(Environment env);
+        
 
 private:
     void addSegment(std::vector<sf::VertexArray>& lines, sf::VertexArray& current);
-    void adaptivePlot(sf::Vector2f p0, sf::Vector2f p1, double deltaYMax, double deltaXMin, int depth, int maxDepth,
-                                sf::Vector2f worldOrigin, sf::Vector2f viewSize, sf::Vector2f windowSize, double t);
+    void adaptivePlot(sf::Vector2f p0, sf::Vector2f p1, double deltaYMax, double deltaXMin, int depth, int maxDepth, Environment env);
 
 private:
     std::string m_name;

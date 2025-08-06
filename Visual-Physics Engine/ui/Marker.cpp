@@ -48,16 +48,14 @@ void XMarker::update() {
 void XMarker::setPosition(sf::Vector2f position) {
     sf::Vector2f baseViewSize = m_scene.getViewSize();
     sf::Vector2f scaleFactor = m_scene.getScale();
-    sf::Vector2f translation = m_scene.getTranslation();
     
     sf::Vector2f viewSize;
     viewSize.x = baseViewSize.x / scaleFactor.x;
     viewSize.y = baseViewSize.y / scaleFactor.y;
     
-    m_marker[0].position = {position.x, m_scene.screenToWorld({0, position.y}).y - config::coordinateSystem::markerLength * 4};
-    m_marker[1].position = {position.x, m_scene.screenToWorld({0, position.y}).y + config::coordinateSystem::markerLength * 4};
-    m_label->setPosition({(position.x + translation.x) , (config::coordinateSystem::markerLabelOffset * 2 + translation.y) / viewSize.y * config::window::size.y});
-    //m_label->setPosition({position.x, position.y + config::coordinateSystem::markerLabelOffset * 2});
+    m_marker[0].position = {position.x, position.y - config::coordinateSystem::markerLength * 4};
+    m_marker[1].position = {position.x, position.y + config::coordinateSystem::markerLength * 4};
+    m_label->setPosition(  {position.x, position.y + config::coordinateSystem::markerLabelOffset * 2});
     
     m_position = position;
 }

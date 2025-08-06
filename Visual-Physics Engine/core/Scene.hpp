@@ -50,7 +50,7 @@ public:
     void setScale(sf::Vector2f scale);
     sf::Transform getScaleMatrix() const;
     
-    sf::Vector2f getViewSize() const { return { config::window::resolution.x / 100.f, config::window::resolution.y / 100.f }; }
+    sf::Vector2f getViewSize();
 
     sf::Transform getTransformMatrix() const;
 
@@ -69,7 +69,7 @@ private:
     
     sf::Clock& m_clock;
     
-    sf::Vector2f m_viewSize = {static_cast<float>(config::window::resolution.x), static_cast<float>(config::window::resolution.y)};
+    sf::Vector2f m_viewSize;
 
     sf::Vector2f m_translationVector = {0.0f, 0.0f};
     sf::Vector2f m_scaleVector = {1.0f, 1.0f};

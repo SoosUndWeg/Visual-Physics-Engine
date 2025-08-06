@@ -24,7 +24,7 @@ public:
     std::unique_ptr<ASTNode> parse();
     
 private:
-    int precedence(char op) const;
+    int precedence(Tokenizer::TokenType type) const;
     
     bool isLeftAssociative(char op) const;
     void isStackEmpty(const std::stack<std::pair<std::string, Tokenizer::TokenType>>& stack) const;

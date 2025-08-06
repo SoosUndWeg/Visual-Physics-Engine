@@ -35,14 +35,13 @@ private:
     void createMarkers();
     int calculateMarkerCount() const;
     float calculateMarkerSpacing() const;
-    void updateMarkerPositions(float spacing, float yPos);
+    void updateMarkerPositions(float yPos);
     
 private:
     sf::VertexArray m_xAxis;
     sf::Text m_xAxisLabel;
     
     std::vector<XMarker> m_markers;
-    double m_markerSpacing = 0.0;
     
     Scene& m_scene;
     sf::Font& m_font;

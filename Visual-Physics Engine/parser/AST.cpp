@@ -7,7 +7,8 @@
 
 #include "AST.hpp"
 
-#include <print>
+#include <unordered_map>
+#include <cmath>
 
 
 
@@ -24,7 +25,7 @@ double BinaryOperationNode::evaluate(const Environment& env) const {
             return leftValue * rightValue;
         case '/':
             if (rightValue == 0) {
-                throw std::runtime_error("Division by zero");
+                return 0.0;
             }
             return leftValue / rightValue;
         case '^':
@@ -52,22 +53,19 @@ double ConstantNode::evaluate(const Environment& env) const {
     return value;
 }
 
+FunctionNode::FunctionNode(const std::string& func, std::unique_ptr<ASTNode> arg)
+    : argument(std::move(arg)), functionName(func) {}
+
 double FunctionNode::evaluate(const Environment& env) const {
     double argValue = argument->evaluate(env);
 
-    if (function == "sin") {
-        return std::sin(argValue);
-    } else if (function == "cos") {
-        return std::cos(argValue);
-    } else if (function == "tan") {
-        return std::tan(argValue);
-    } else if (function == "sqrt") {
-        if (argValue < 0) {
-            throw std::runtime_error("Square root of negative number");
-        }
-        return std::sqrt(argValue);
+    if (functionMap.find(functionName) == functionMap.end()) {
+        
+        throw std::runtime_error("Function not found: " + functionName);
+        
     } else {
-        throw std::runtime_error("Unknown function: " + function);
+        
+        return functionMap.at(functionName)(argValue);
     }
 }
 
@@ -102,4 +100,16 @@ double FunctionHeaderNode::evaluateWithParameters(const std::vector<double>& arg
     }
 
     return body ? body->evaluate(env) : 0.0;
+}
+
+
+NegationNode::NegationNode(std::unique_ptr<ASTNode> node)
+    : m_node(std::move(node)) {}
+
+double NegationNode::evaluate(const Environment& env) const {
+    return -m_node->evaluate(env);
+}
+
+std::string NegationNode::toString() const {
+    return "-" + m_node->toString();
 }

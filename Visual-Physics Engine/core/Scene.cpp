@@ -11,14 +11,14 @@
 #include "EventHandler.hpp"
 
 Scene::Scene(sf::Font& font, sf::Clock& clock) : m_translationVector({0, 0}),
+                                     m_scaleVector({1.f, 1.f}),
                                      m_viewSize({config::window::resolution.x / config::window::pixelPerWorldUnit,
                                                  config::window::resolution.y / config::window::pixelPerWorldUnit}),
                                      m_clock(clock),
                                      m_coordinateSystem(font, *this),
-                                     m_function1("f", "f(x, t) = sin(x - t)", *this, sf::Color::Green),
-                                     m_function2("g", "g(x, t) = sin(x + t)", *this, sf::Color::Red) {
-    
-    initialize();
+                                     m_function1("f", "f(x, t) = sin(x * sin(t))", *this, sf::Color::Green),
+                                     m_function2("g", "g(x,t) = -x + 1", *this, sf::Color::Red) {
+    initialize(); //g(x, t) = exp(- 0.3 * t) * (3 * sin( 4 * t) + 5 * cos( 6 * t))
 }
 
 void Scene::draw(sf::RenderTarget& target, sf::RenderStates states) const {
@@ -53,9 +53,13 @@ void Scene::update() {
 }
 
 void Scene::updateGraph() {
-    m_function1.calculateInterval(m_clock.getElapsedTime().asSeconds());
+    std::unordered_map<std::string, double> map ({
+        {"t", static_cast<double>(m_clock.getElapsedTime().asSeconds())},
+        {"x", 0.0}
+    });
+    m_function1.calculateInterval(map);
 
-    m_function2.calculateInterval(m_clock.getElapsedTime().asSeconds());
+    m_function2.calculateInterval(map);
 }
 
 void Scene::addShape(std::unique_ptr<sf::Drawable> shape) {
@@ -80,6 +84,12 @@ sf::Transform Scene::getTranslationMatrix() const {
     sf::Transform translateTransform = sf::Transform::Identity;
     translateTransform.translate(m_translationVector);
     return translateTransform;
+}
+
+sf::Vector2f Scene::getViewSize() {
+    m_viewSize.x = static_cast<float>(config::window::resolution.x) / m_scaleVector.x / config::window::pixelPerWorldUnit;
+    m_viewSize.y = static_cast<float>(config::window::resolution.y) / m_scaleVector.y / config::window::pixelPerWorldUnit;
+    return m_viewSize;
 }
 
 void Scene::scale(sf::Vector2f factor) {

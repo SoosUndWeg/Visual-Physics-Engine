@@ -33,7 +33,13 @@ void Tokenizer::tokenize() {
             
         } else if (m_binaryOperators.find(c) != std::string::npos) {
             
-            m_tokens.push_back(std::make_pair(std::string(1, c), TokenType::BinaryOperator));
+            if (c == '+' || c == '-') {
+                m_tokens.push_back(std::make_pair(std::string(1, c), TokenType::BinaryPMOperator));
+            } else if (c == '*' || c == '/') {
+                m_tokens.push_back(std::make_pair(std::string(1, c), TokenType::BinaryMDOperator));
+            } else if (c == '^') {
+                m_tokens.push_back(std::make_pair(std::string(1, c), TokenType::BinaryPowerOperator));
+            }
             
         } else if (m_punctuation.find(c) != std::string::npos) {
             
@@ -58,8 +64,8 @@ void Tokenizer::tokenize() {
         }
     }
     
-    for (const auto& token : m_tokens) {
-        println("Token: {}, Type: {}", token.first, static_cast<int>(token.second));
+    for (auto& token : m_tokens) {
+        std::print("Token {} of Type {}\n", token.first, static_cast<int>(token.second));
     }
 }
 
