@@ -104,9 +104,9 @@ void EventHandler::trackpadZoomed(float zoomFactor) {
 
 void EventHandler::mouseWheelScrolled(const sf::Event::MouseWheelScrolled& event) {
     if (event.wheel == sf::Mouse::Wheel::Vertical) {
-        m_scene.translate({0, event.delta * config::scene::translationFactor});
+        m_scene.translate({0, event.delta * config::scene::translationFactor / m_scene.getScale().y});
     }
     if (event.wheel == sf::Mouse::Wheel::Horizontal) {
-        m_scene.translate({(-event.delta * config::scene::translationFactor), 0});
+        m_scene.translate({-event.delta * config::scene::translationFactor / m_scene.getScale().x, 0});
     }
 }

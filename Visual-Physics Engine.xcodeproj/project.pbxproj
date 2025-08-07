@@ -977,6 +977,8 @@
 				LIBRARY_SEARCH_PATHS = (
 					"$(inherited)",
 					/opt/homebrew/Cellar/sfml/3.0.1/lib,
+					"$(PROJECT_DIR)/Visual-Physics\\ Engine/external/imgui/examples/libs/glfw/lib-vc2010-32",
+					"$(PROJECT_DIR)/Visual-Physics\\ Engine/external/imgui/examples/libs/glfw/lib-vc2010-64",
 				);
 				PRODUCT_NAME = "$(TARGET_NAME)";
 			};
@@ -992,6 +994,8 @@
 				LIBRARY_SEARCH_PATHS = (
 					"$(inherited)",
 					/opt/homebrew/Cellar/sfml/3.0.1/lib,
+					"$(PROJECT_DIR)/Visual-Physics\\ Engine/external/imgui/examples/libs/glfw/lib-vc2010-32",
+					"$(PROJECT_DIR)/Visual-Physics\\ Engine/external/imgui/examples/libs/glfw/lib-vc2010-64",
 				);
 				PRODUCT_NAME = "$(TARGET_NAME)";
 			};

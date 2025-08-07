@@ -42,9 +42,6 @@ void XAxis::initialize() {
     
     // Label
     m_xAxisLabel.setPosition({xMin + config::hud::distanceFromWindowBorder, config::coordinateSystem::markerLabelOffset * 2.f});
-    
-    // Marker
-    createMarkers();
 }
 
 void XAxis::draw(sf::RenderTarget& target, sf::RenderStates states) const {
@@ -110,7 +107,7 @@ int XAxis::calculateMarkerCount() const {
 
 float XAxis::calculateMarkerSpacing() const {
     
-    return 2.f * m_scene.getViewSize().x / static_cast<float>(config::coordinateSystem::markerCount) * std::pow(2.f, -std::floor(std::log2(m_scene.getScale().x)));
+    return 2.f / config::coordinateSystem::markerCount.x * std::pow(2.f, -std::floor(std::log2(m_scene.getScale().x)));
 }
 
 void XAxis::updateMarkerPositions(float yPos) {
@@ -121,11 +118,6 @@ void XAxis::updateMarkerPositions(float yPos) {
     
     float xMin = m_scene.getTranslation().x - m_scene.getViewSize().x;
     float xMax = m_scene.getTranslation().x + m_scene.getViewSize().x;
-    
-    int xIntMin = spacing * std::floor(xMin / spacing);
-    int xIntMax = spacing * std::ceil(xMax / spacing);
-    
-    std::print("IntMin: {}, IntMax: {}\n", xIntMin, xIntMax);
     
     float firstX = std::floor(xMin / spacing) * spacing;
     
@@ -185,22 +177,22 @@ void YAxis::initialize() {
     
     // Label
     m_yAxisLabel.setPosition({config::coordinateSystem::markerLabelOffset * 2.f, yMin + config::hud::distanceFromWindowBorder});
-    
 }
 
 void YAxis::draw(sf::RenderTarget& target, sf::RenderStates states) const {
     target.draw(m_yAxis, states);
     target.draw(m_yAxisLabel, states);
+    
+    for (const auto& marker : m_markers) {
+        target.draw(marker, states);
+    }
 }
 
 void YAxis::update() {
     // Axis & Label
-    sf::Vector2f baseViewSize = m_scene.getViewSize();
-    sf::Vector2f scaleFactor = m_scene.getScale();
     sf::Vector2f translation = m_scene.getTranslation();
     
-    sf::Vector2f viewSize;
-    viewSize.x = baseViewSize.x / scaleFactor.x;
+    sf::Vector2f viewSize = m_scene.getViewSize();
     
     float x = - translation.x / viewSize.x * config::window::size.x;
     
@@ -208,6 +200,8 @@ void YAxis::update() {
                        static_cast<float>(config::window::size.x) - config::hud::distanceFromWindowBorder);
     
     setScreenPosition(x);
+    
+    updateMarkerPositions(x);
 }
 
 
@@ -225,4 +219,57 @@ void YAxis::setWorldPosition(double x) {
     m_yAxis[1].position.x = x;
 
 
+}
+
+void YAxis::createMarkers() {
+    int markerCount = calculateMarkerCount();
+    
+    m_markers.reserve(markerCount);
+    
+    for (size_t i = m_markers.size(); i < markerCount; ++i) {
+        
+        m_markers.emplace_back(m_scene, m_font, "", sf::Vector2f({0.f, 0.f}));
+    }
+}
+
+int YAxis::calculateMarkerCount() const {
+    
+    return static_cast<int>(m_scene.getViewSize().y / calculateMarkerSpacing()) * 2 + 1;
+}
+
+float YAxis::calculateMarkerSpacing() const {
+    
+    return 2.f / config::coordinateSystem::markerCount.y * std::pow(2.f, -std::floor(std::log2(m_scene.getScale().y)));
+}
+
+void YAxis::updateMarkerPositions(float xPos) {
+    
+    float spacing = calculateMarkerSpacing();
+    
+    createMarkers();
+    
+    float yMin = m_scene.getTranslation().y - m_scene.getViewSize().y;
+    float yMax = m_scene.getTranslation().y + m_scene.getViewSize().y;
+    
+    float firstY = std::floor(yMin / spacing) * spacing;
+    
+    int j = 0;
+    for (float i = firstY; i <= yMax; i += spacing) {
+        
+        if (j >= m_markers.size()) {
+            
+            break;
+        }
+        
+        m_markers[j].setVisible(true);
+        m_markers[j].setPosition({xPos, m_scene.worldToScreen({0, i}).y});
+        m_markers[j].setLabel(std::format("{:.2f}", i));
+        
+        ++j;
+    }
+    
+    for (; j < m_markers.size(); ++j) {
+        
+        m_markers[j].setVisible(false);
+    }
 }

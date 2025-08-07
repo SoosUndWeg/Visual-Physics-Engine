@@ -26,6 +26,11 @@ public:
 
     void calculateInterval();
     void calculateInterval(Environment env);
+    
+    void setEnvironment(Environment env);
+    
+    void setVariable(const std::string& variable, double value);
+    void setVariable(std::pair<std::string, double> variable);
         
 
 private:
@@ -35,6 +40,8 @@ private:
 private:
     std::string m_name;
     std::string m_expression;
+    
+    Environment m_environment;
 
     std::unique_ptr<FunctionHeaderNode> m_function;
 

@@ -70,9 +70,17 @@ std::unique_ptr<ASTNode> ShuntingYard::parse() {
     std::pair<std::string, Tokenizer::TokenType> lastToken = {"", Tokenizer::TokenType::Unknown};
     
     for (int i = 0; i < m_tokens.size(); ++i) {
-        
-        std::print("Token: {}\n", m_tokens[i].first);
-        
+        /*
+        std::print("\n{}: ", i);
+        for (int j = i; j < m_tokens.size(); j++) {
+            std::print("{}", m_tokens[j].first);
+        }
+        std::print("\n");
+        if (!outputStack.empty())
+            std::print("Output Stack top: {}\n", outputStack.top()->toString());
+        if (!opStack.empty())
+            std::print("Op Stack top    : {}\n", opStack.top().first);
+        */
         auto& token = m_tokens[i];
         
         if (token.second == Tokenizer::TokenType::Number) {
@@ -94,15 +102,13 @@ std::unique_ptr<ASTNode> ShuntingYard::parse() {
                 }
             }
             
-            std::print("Parsed number: {}\n", token.first);
-            
             // Push the number to the output stack as a ConstantNode
             if (lastToken.second == Tokenizer::TokenType::UnaryOperator){
-                std::print("L-> Got a p/m\n");
+                
                 outputStack.push(std::make_unique<ConstantNode>(std::stod(lastToken.first + token.first)));
                 
             } else {
-                std::print("L-> Got a number {}\n", token.first);
+                
                 outputStack.push(std::make_unique<ConstantNode>(std::stod(token.first)));
             }
             
@@ -117,7 +123,6 @@ std::unique_ptr<ASTNode> ShuntingYard::parse() {
                 lastToken.second == Tokenizer::TokenType::BinaryMDOperator ||
                 lastToken.second == Tokenizer::TokenType::BinaryPowerOperator ||
                 lastToken.second == Tokenizer::TokenType::Unknown ||
-                lastToken.second == Tokenizer::TokenType::Function ||
                 lastToken.second == Tokenizer::TokenType::BracketOpen)) {
                 
                 lastToken = token;
@@ -151,7 +156,6 @@ std::unique_ptr<ASTNode> ShuntingYard::parse() {
                         isFunction = false;
                         break;
                     }
-                    std::print("Checking function {} against token {}\n", func, m_tokens[i + j].first);
                     
                     // Compare the tokens with the function name
                     if (m_tokens[i + j].first[0] != func[j]) {
@@ -221,7 +225,7 @@ std::unique_ptr<ASTNode> ShuntingYard::parse() {
             }
 
             if (!isFunction && !isConstant) {
-                std::print("Identifier found: {} {}\n", lastToken.first, token.first);
+                
                 // If the identifier is not a function or constant, treat it as a variable
                 if (lastToken.second == Tokenizer::TokenType::UnaryOperator && lastToken.first == "-") {
                     
@@ -248,17 +252,16 @@ std::unique_ptr<ASTNode> ShuntingYard::parse() {
             
             // Pop operators from the stack until an opening bracket is found
             while (!opStack.empty() && opStack.top().second != Tokenizer::TokenType::BracketOpen) {
-                std::print("-->Handling operator: {}\n", opStack.top().first);
+                
                 handleOperator(opStack, outputStack);
                 
             }
-            std::print("Stack before popping: {}\n", opStack.top().first);
+            
             opStack.pop();
             token = opStack.top();
-            std::print("STack after popping: {}\n", token.first);
             
             if (!opStack.empty() && token.second == Tokenizer::TokenType::Function) {
-                std::print("Function before bracket found {}\n", token.first);
+                
                 handleOperator(opStack, outputStack);
                 
                 lastToken = token;

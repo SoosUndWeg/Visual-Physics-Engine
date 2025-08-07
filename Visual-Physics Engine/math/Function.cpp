@@ -51,7 +51,7 @@ void Function::addSegment(std::vector<sf::VertexArray>& lines, sf::VertexArray& 
 }
 
 void Function::calculateInterval() {
-    
+    calculateInterval(m_environment);
 }
 
 void Function::calculateInterval(Environment env) {
@@ -166,4 +166,16 @@ void Function::adaptivePlot(sf::Vector2f p0, sf::Vector2f p1,
     }
 }
     
+
+void Function::setEnvironment(Environment env) {
+    m_environment = env;
+}
+
+void Function::setVariable(const std::string& variable, double value) {
+    m_environment[variable] = value;
+}
+
+void Function::setVariable(std::pair<std::string, double> variable) {
+    m_environment[variable.first] = variable.second;
+}
 

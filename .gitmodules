@@ -1,0 +1,6 @@
+[submodule "Visual-Physics Engine/external/imgui-sfml"]
+	path = Visual-Physics Engine/external/imgui-sfml
+	url = https://github.com/eliasdaler/imgui-sfml.git
+[submodule "Visual-Physics Engine/external/imgui"]
+	path = Visual-Physics Engine/external/imgui
+	url = https://github.com/ocornut/imgui.git

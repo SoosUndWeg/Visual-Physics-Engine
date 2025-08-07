@@ -80,3 +80,76 @@ void XMarker::setVisible(const bool visible) {
     m_marker[0].color = visible ? sf::Color::Cyan : sf::Color::Transparent;
     m_marker[1].color = visible ? sf::Color::Cyan : sf::Color::Transparent;
 }
+
+
+//***** YMarker *****
+
+YMarker::YMarker(Scene& scene, sf::Font& font, const std::string& labelText, sf::Vector2f position) :
+    m_scene(scene),
+    m_font(font),
+    m_label(sf::Text(font, labelText, 20)),
+    m_position(position) {
+    
+    initialize();
+}
+
+void YMarker::initialize() {
+    m_label->setFillColor(sf::Color::Transparent);
+    m_label->setPosition({m_position.x, - config::coordinateSystem::markerLabelOffset * 2});
+    m_label->setCharacterSize(config::coordinateSystem::markerLabelSize);
+    
+    m_marker.setPrimitiveType(sf::PrimitiveType::Lines);
+    m_marker.resize(2);
+    
+    m_marker[0].color = sf::Color::Transparent;
+    m_marker[1].color = sf::Color::Transparent;
+    
+    setPosition(m_position);
+}
+
+void YMarker::draw(sf::RenderTarget& target, sf::RenderStates states) const {
+    target.draw(m_label.value(), states);
+    target.draw(m_marker, states);
+}
+
+void YMarker::update() {
+    setPosition(m_position);
+}
+
+
+void YMarker::setPosition(sf::Vector2f position) {
+    sf::Vector2f baseViewSize = m_scene.getViewSize();
+    sf::Vector2f scaleFactor = m_scene.getScale();
+    
+    sf::Vector2f viewSize;
+    viewSize.x = baseViewSize.x / scaleFactor.x;
+    viewSize.y = baseViewSize.y / scaleFactor.y;
+    
+    m_marker[0].position = {position.x - config::coordinateSystem::markerLength * 4, position.y};
+    m_marker[1].position = {position.x + config::coordinateSystem::markerLength * 4, position.y};
+    m_label->setPosition(  {position.x + config::coordinateSystem::markerLabelOffset * 2, position.y});
+    
+    m_position = position;
+}
+
+sf::Vector2f YMarker::getPosition() const {
+    return m_position;
+}
+
+void YMarker::setLabel(const std::string& labelText) {
+    if (m_label) {
+        m_label->setString(labelText);
+    }
+}
+
+void YMarker::setColor(const sf::Color &color) {
+    m_marker[0].color = color;
+    m_marker[1].color = color;
+}
+
+void YMarker::setVisible(const bool visible) {
+    m_label->setFillColor(visible ? sf::Color::Cyan : sf::Color::Transparent);
+    m_marker[0].color = visible ? sf::Color::Cyan : sf::Color::Transparent;
+    m_marker[1].color = visible ? sf::Color::Cyan : sf::Color::Transparent;
+}
+

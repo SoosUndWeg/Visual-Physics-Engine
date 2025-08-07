@@ -23,7 +23,7 @@ namespace config {
     namespace scene {
         constexpr float mouseScaleFactor = 0.02f;
         constexpr float trackpadScaleFactor = 0.5f;
-        constexpr float translationFactor = 0.1f;
+        constexpr float translationFactor = 0.08f;
     }
 
     namespace hud {
@@ -36,7 +36,7 @@ namespace config {
         constexpr float markerLength = 3.f;
         constexpr float markerLabelSize = 20.f;
         constexpr float markerLabelOffset = 0.05f;
-        constexpr int markerCount = 20;
+        constexpr sf::Vector2i markerCount = {2, 2};
         constexpr float windowToCoordinateFactor = 0.01f;
     }
 

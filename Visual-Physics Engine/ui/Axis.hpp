@@ -58,14 +58,21 @@ public:
     void update();
     
 private:
-    void setScreenPosition(double x);
-    void setWorldPosition(double x);
+    void setScreenPosition(double y);
+    void setWorldPosition(double y);
     
     void initialize();
+    
+    void createMarkers();
+    int calculateMarkerCount() const;
+    float calculateMarkerSpacing() const;
+    void updateMarkerPositions(float xPos);
     
 private:
     sf::VertexArray m_yAxis;
     sf::Text m_yAxisLabel;
+    
+    std::vector<YMarker> m_markers;
     
     Scene& m_scene;
     sf::Font& m_font;
