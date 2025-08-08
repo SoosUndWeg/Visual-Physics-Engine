@@ -32,7 +32,7 @@ public:
 
     void update();
     void updateGraph();
-    void setGraphDirty() { m_graphDirty = true; }
+    void setGraphDirty();
 
     auto begin() { return m_shapes.begin(); }
     auto end() { return m_shapes.end(); }
@@ -61,6 +61,8 @@ public:
     
     sf::Vector2f worldToScreen(sf::Vector2f worldPosition) const;
     sf::Vector2f screenToWorld(sf::Vector2f screenPosition) const;
+    
+    bool playTime();
 
 private:
     std::vector<std::unique_ptr<sf::Drawable>> m_shapes;
@@ -77,6 +79,8 @@ private:
     sf::Vector2f m_scaleVector = {1.0f, 1.0f};
 
     bool m_graphDirty = true;
+    
+    bool m_playTime = true;
 };
 
 #endif // SCENE_HPP

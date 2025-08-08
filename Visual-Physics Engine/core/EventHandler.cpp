@@ -35,16 +35,21 @@ void EventHandler::handleEvent(const sf::Event& event) {
     }
     
     if (auto mouseWheelScrolledEvent = event.getIf<sf::Event::MouseWheelScrolled>()) {
-        if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::LControl) ||
-            sf::Keyboard::isKeyPressed(sf::Keyboard::Key::RControl)) {
+        
+        if (auto keyEvent = event.getIf<sf::Event::KeyPressed>()) {
+            
+            if (keyEvent->code == sf::Keyboard::Key::LControl ||
+                keyEvent->code == sf::Keyboard::Key::RControl) {
 
-            ctrlMouseWheelScrolled(*mouseWheelScrolledEvent);
+                ctrlMouseWheelScrolled(*mouseWheelScrolledEvent);
 
-        } else if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::LShift) ||
-                   sf::Keyboard::isKeyPressed(sf::Keyboard::Key::RShift)) {
+            } else if (keyEvent->code == sf::Keyboard::Key::LShift ||
+                       keyEvent->code == sf::Keyboard::Key::RShift) {
 
-            shiftMouseWheelScrolled(*mouseWheelScrolledEvent);
+                shiftMouseWheelScrolled(*mouseWheelScrolledEvent);
 
+            }
+            
         } else {
 
             mouseWheelScrolled(*mouseWheelScrolledEvent);
@@ -52,6 +57,14 @@ void EventHandler::handleEvent(const sf::Event& event) {
 
         for (const auto& callback : m_mouseScrolledCallbacks) {
             callback();
+        }
+    }
+    
+    if (auto keyEvent = event.getIf<sf::Event::KeyPressed>()) {
+        
+        if (keyEvent->code == sf::Keyboard::Key::Space) {
+            
+            spacePressed();
         }
     }
 }
@@ -116,4 +129,9 @@ void EventHandler::mouseWheelScrolled(const sf::Event::MouseWheelScrolled& event
     if (event.wheel == sf::Mouse::Wheel::Horizontal) {
         m_scene.translate({-event.delta * config::scene::translationFactor / m_scene.getScale().x, 0});
     }
+}
+
+void EventHandler::spacePressed() {
+    
+    m_scene.playTime();
 }

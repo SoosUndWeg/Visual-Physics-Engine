@@ -42,6 +42,8 @@ private:
     void shiftMouseWheelScrolled(const sf::Event::MouseWheelScrolled& event);
     void trackpadZoomed(float zoomFactor);
     void mouseWheelScrolled(const sf::Event::MouseWheelScrolled& event);
+    
+    void spacePressed();
 
 private:
     Scene& m_scene;

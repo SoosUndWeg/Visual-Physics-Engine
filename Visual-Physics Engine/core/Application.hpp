@@ -17,15 +17,15 @@
 #include <SFML/Graphics.hpp>
 
 
+/// @class Application
+/// @brief The main class for the Visual-Physics Engine application.
+/// This class initializes the application, creates the main window, and manages the game loop.
 class Application {
 public:
     Application();
     ~Application();
 
     void run();
-
-    
-    const sf::Font& getFont() const;
     
     void refreshParameterHUDs();
 

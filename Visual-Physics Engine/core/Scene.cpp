@@ -45,9 +45,10 @@ void Scene::initialize() {
                                 Function::Flag::IntervalCalculated);
     m_functions.back()->initializeEnvironment();
     
-    m_functions.push_back(std::make_shared<Function>("g", "g(x, m, n, o) = m * x^2 + n * x + o", *this, sf::Color::Red));
+    m_functions.push_back(std::make_shared<Function>("g", "g(a, b, t) = a * cos(t) * sin(b * t)", *this, sf::Color::Red));
     m_functions.back()->setFlag(Function::Flag::Animated |
-                                Function::Flag::IntervalCalculated);
+                                Function::Flag::Waveform |
+                                Function::Flag::TimeDependent);
     m_functions.back()->initializeEnvironment();
     
     m_application.refreshParameterHUDs();
@@ -59,26 +60,33 @@ void Scene::setCallback(EventHandler& eventHandler) {
     eventHandler.subscribe(EventHandler::Listener::MouseScrolled, std::bind(&Scene::setGraphDirty, this));
 }
 
+
 void Scene::update() {
     m_coordinateSystem.update();
-    m_graphDirty = true;
-    if (m_graphDirty) {
-        updateGraph();
-        m_graphDirty = false;
-    }
+    
+    updateGraph();
+   
 }
 
 void Scene::updateGraph() {
     
     for (auto& function : m_functions) {
         
-        if (function->getFlags() & Function::Flag::TimeDependent) {
+        if (function->getFlags() & Function::Flag::TimeDependent && m_playTime) {
             function->setTime(m_clock.getElapsedTime().asSeconds());
+            function->graphDirty();
         }
         
         function->update();
     }
 }
+
+void Scene::setGraphDirty() {
+    for (auto& function : m_functions) {
+        function->graphDirty();
+    }
+}
+
 
 void Scene::addShape(std::unique_ptr<sf::Drawable> shape) {
     m_shapes.push_back(std::move(shape));
@@ -180,8 +188,6 @@ void Scene::scaleAroundMouse(sf::Vector2f factor, sf::Vector2f mousePosition) {
 
 sf::Vector2f Scene::worldToScreen(sf::Vector2f worldPos) const {
     sf::Vector2f windowSize = static_cast<sf::Vector2f>(config::window::size);
-
-    //sf::Vector2f viewSizeZoomed = { m_viewSize.x / m_scaleVector.x, m_viewSize.y / m_scaleVector.y };
     sf::Vector2f viewSize = getViewSize();
     
     float px = (worldPos.x - m_translationVector.x) / viewSize.x * windowSize.x;
@@ -192,11 +198,23 @@ sf::Vector2f Scene::worldToScreen(sf::Vector2f worldPos) const {
 
 sf::Vector2f Scene::screenToWorld(sf::Vector2f screenPos) const {
     sf::Vector2f windowSize = static_cast<sf::Vector2f>(config::window::size);
-    //sf::Vector2f viewSizeZoomed = { m_viewSize.x / m_scaleVector.x, m_viewSize.y / m_scaleVector.y };
     sf::Vector2f viewSize = getViewSize();
 
     float x = (screenPos.x / windowSize.x) * viewSize.x + m_translationVector.x;
     float y = -(screenPos.y / windowSize.y) * viewSize.y + m_translationVector.y;
 
     return {x, y};
+}
+
+bool Scene::playTime() {
+    
+    if (m_playTime) {
+        m_playTime = false;
+        m_clock.stop();
+    } else {
+        m_playTime = true;
+        m_clock.start();
+    }
+    
+    return m_playTime;
 }

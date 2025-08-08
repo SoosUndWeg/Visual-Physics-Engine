@@ -43,9 +43,17 @@ void Function::draw(sf::RenderTarget& target, sf::RenderStates states) const {
 }
 
 void Function::update() {
-    
-    if (m_flags & IntervalCalculated) {
-        calculateInterval();
+    if (m_graphDirty) {
+        m_graphDirty = false;
+        
+        
+        if (m_flags & IntervalCalculated) {
+            
+            calculateInterval();
+            
+        } else if (m_flags & Waveform && m_flags & TimeDependent) {
+            calculateWave();
+        }
     }
 }
 
@@ -68,7 +76,7 @@ bool Function::hasVariable(const std::string& variable) const {
 void Function::setEnvironment(Environment env) {
     m_environment = env;
     if (m_flags & XPlot) {
-        m_environment["x"] = 0.0; // Ensure x is initialized for plotting
+        m_environment["x"] = 0.0;
     }
 }
 
@@ -93,8 +101,10 @@ void Function::setVariable(std::pair<std::string, double> variable) {
 
 void Function::setTime(double time) {
     
-    if (hasVariable("t"))
+    if (m_flags & TimeDependent && m_flags & Animated) {
         setVariable("t", time);
+        graphDirty();
+    }
 }
 
 
@@ -145,9 +155,6 @@ void Function::calculateInterval(Environment env) {
 
     sf::Vector2f worldOrigin = m_scene.getTranslation();
     sf::Vector2f viewSize = m_scene.getViewSize();
-    
-    double deltaYMax = viewSize.y * config::function::deltaMaxPercent;
-    double deltaXMin = viewSize.x * config::function::deltaMinMultiplier;
 
     double xMin = worldOrigin.x - viewSize.x;
     double xMax = worldOrigin.x + viewSize.x;
@@ -173,7 +180,7 @@ void Function::calculateInterval(Environment env) {
             
         } else if (lastValid && valid) {
             
-            adaptivePlot(sf::Vector2f(lastWorldX, lastWorldY), sf::Vector2f(x, y),  deltaYMax, deltaXMin, 0, config::function::maxDepth, env);
+            adaptivePlot("x", sf::Vector2f(lastWorldX, lastWorldY), sf::Vector2f(x, y), {0.f, 0.f}, 0, config::function::maxDepth, env);
             
         } else if (lastValid && !valid) {
             
@@ -189,12 +196,72 @@ void Function::calculateInterval(Environment env) {
 }
 
 
-void Function::adaptivePlot(sf::Vector2f p0, sf::Vector2f p1,
-    double deltaYMax, double deltaXMin, int depth, int maxDepth, Environment env)
-{
+void Function::calculateWave() {
+    calculateWave(m_environment);
+}
+
+void Function::calculateWave(Environment env) {
+    
+    float& t = env.at("t");
+    
+    sf::Vector2f viewSize = m_scene.getViewSize();
+    sf::Vector2f worldOrigin = m_scene.getTranslation();
+
+    // t = now is always at x = 0, because t gets translated by t - tauMax before plotting
+    // tMin is the left edge of the view, tMax is the current time
+    double tauMin = std::max(0.0, static_cast<double>(t + worldOrigin.x - viewSize.x));
+    double tauMax = t;
+    
+    double tau = tauMin;
+
+    double gridLength = viewSize.x / config::function::coarseSteps;
+    int nSteps = static_cast<int>((tauMax - tauMin) / gridLength);
+
+    bool lastValid = false;
+    double lastT = t, lastY = m_function->evaluate(env);
+
+    m_currentLine.clear();
+    m_lines.clear();
+
+    for (int i = 0; i < nSteps; ++i) {
+        tau = tauMin + i * gridLength;
+        
+        if (tau > tauMax) {
+            break;
+        }
+
+        t = tau;
+
+        double y = m_function->evaluate(env);
+
+        bool valid = !std::isnan(y) && !std::isinf(y);
+
+        if (!lastValid && valid) {
+            m_currentLine.append(sf::Vertex(m_scene.worldToScreen(sf::Vector2f(t - tauMax, y)), m_color));
+        } else if (lastValid && valid) {
+            adaptivePlot("t", sf::Vector2f(lastT, lastY), sf::Vector2f(t, y), {- static_cast<float>(tauMax),0.f}, 0, config::function::maxDepth, env);
+        } else if (lastValid && !valid) {
+            addSegment(m_lines, m_currentLine);
+        }
+
+        lastValid = valid;
+        lastT = t;
+        lastY = y;
+    }
+    addSegment(m_lines, m_currentLine);
+}
+
+
+void Function::adaptivePlot(std::string key, sf::Vector2f p0, sf::Vector2f p1, sf::Vector2f offset, int depth, int maxDepth, Environment env) {
+    
+    sf::Vector2f viewSize = m_scene.getViewSize();
+    
+    double deltaYMax = viewSize.y * config::function::deltaMaxPercent;
+    double deltaXMin = viewSize.x * config::function::deltaMinMultiplier;
+    
     if (depth >= maxDepth) {
         
-        m_currentLine.append(sf::Vertex(m_scene.worldToScreen({p1.x, p1.y}), m_color));
+        m_currentLine.append(sf::Vertex(m_scene.worldToScreen({(p1.x + offset.x), p1.y + offset.y}), m_color));
         
         return;
     }
@@ -226,7 +293,7 @@ void Function::adaptivePlot(sf::Vector2f p0, sf::Vector2f p1,
             return;
         }
 
-        float& xm = env.at("x");
+        float& xm = env.at(key);
         
         xm = (p0.x + p1.x) / 2.f;
         double ym = m_function->evaluate(env);
@@ -239,11 +306,11 @@ void Function::adaptivePlot(sf::Vector2f p0, sf::Vector2f p1,
         
         sf::Vector2f mid(xm, ym);
         
-        adaptivePlot(p0, mid, deltaYMax, deltaXMin, depth + 1, maxDepth, env);
-        adaptivePlot(mid, p1, deltaYMax, deltaXMin, depth + 1, maxDepth, env);
+        adaptivePlot(key, p0, mid, offset, depth + 1, maxDepth, env);
+        adaptivePlot(key, mid, p1, offset, depth + 1, maxDepth, env);
         
     } else {
         
-        m_currentLine.append(sf::Vertex(m_scene.worldToScreen({p1.x, p1.y}), m_color));
+        m_currentLine.append(sf::Vertex(m_scene.worldToScreen({(p1.x + offset.x), p1.y + offset.y}), m_color));
     }
 }

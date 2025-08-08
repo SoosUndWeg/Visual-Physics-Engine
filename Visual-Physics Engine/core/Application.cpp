@@ -37,6 +37,8 @@ void Application::initialize() {
     view.setSize({config::window::resolution.x, config::window::resolution.y});
     view.setCenter({0, 0});
     m_window.setView(view);
+    
+    m_window.requestFocus();
 
     m_scene.setCallback(m_eventHandler);
     
@@ -69,10 +71,6 @@ void Application::run() {
         update();
         render();
     }
-}
-
-const sf::Font& Application::getFont() const {
-    return m_font;
 }
 
 void Application::processEvents() {

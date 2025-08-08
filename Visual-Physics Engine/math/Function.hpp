@@ -26,7 +26,8 @@ public:
         TimeDependent = 1 << 1,
         NoParameters = 1 << 2,
         Animated = 1 << 3,
-        XPlot = 1 << 4
+        XPlot = 1 << 4,
+        Waveform = 1 << 5
     };
 public:
     Function(const std::string& name, const std::string& expression, Scene& scene, sf::Color color = sf::Color::Green);
@@ -35,9 +36,6 @@ public:
     
     void update();
     
-
-    void calculateInterval();
-    void calculateInterval(Environment env);
     
     void setEnvironment(Environment env);
     Environment& getEnvironment();
@@ -58,11 +56,17 @@ public:
     
     std::vector<std::string> getParameters() const;
         
-        
+    void graphDirty(bool dirty = true) { m_graphDirty = dirty; }
 
 private:
+    void calculateInterval();
+    void calculateInterval(Environment env);
+    
+    void calculateWave();
+    void calculateWave(Environment env);
+    
     void addSegment(std::vector<sf::VertexArray>& lines, sf::VertexArray& current);
-    void adaptivePlot(sf::Vector2f p0, sf::Vector2f p1, double deltaYMax, double deltaXMin, int depth, int maxDepth, Environment env);
+    void adaptivePlot(std::string key, sf::Vector2f p0, sf::Vector2f p1, sf::Vector2f offset, int depth, int maxDepth, Environment env);
 
 private:
     std::string m_name;
@@ -80,6 +84,8 @@ private:
     sf::VertexArray m_currentLine;
 
     sf::Color m_color;
+    
+    bool m_graphDirty = true;
 };
 
 #endif // FUNCTION_HPP
