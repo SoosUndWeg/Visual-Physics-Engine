@@ -16,12 +16,13 @@
 #include "../math/Function.hpp"
 
 
+class Application;
 class EventHandler;
 
 
 class Scene : public sf::Drawable{
 public:
-    Scene(sf::Font& font, sf::Clock& clock);
+    Scene(sf::Font& font, sf::Clock& clock, Application& application);
 
     void draw(sf::RenderTarget& target, sf::RenderStates states) const override;
 
@@ -51,6 +52,10 @@ public:
     void setScale(sf::Vector2f scale);
     
     sf::Vector2f getViewSize() const;
+    
+    size_t getFunctionCount() const;
+    std::shared_ptr<Function> getFunction(const std::string& name);
+    std::shared_ptr<Function> getFunction(size_t index);
 
     void scaleAroundMouse(sf::Vector2f factor, sf::Vector2f mousePosition);
     
@@ -62,10 +67,11 @@ private:
 
     CoordinateSystem m_coordinateSystem;
 
-    Function m_function1;
-    Function m_function2;
+    std::vector<std::shared_ptr<Function>> m_functions;
     
     sf::Clock& m_clock;
+    
+    Application& m_application;
 
     sf::Vector2f m_translationVector = {0.0f, 0.0f};
     sf::Vector2f m_scaleVector = {1.0f, 1.0f};

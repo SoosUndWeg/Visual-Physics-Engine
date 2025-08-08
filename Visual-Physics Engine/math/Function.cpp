@@ -33,7 +33,6 @@ Function::Function(const std::string& name, const std::string& expression, Scene
         std::cerr << "Error parsing function: " << e.what() << std::endl;
         throw;
     }
-    println("{}", m_function->toString());
 }
 
 
@@ -43,20 +42,103 @@ void Function::draw(sf::RenderTarget& target, sf::RenderStates states) const {
     }
 }
 
+void Function::update() {
+    
+    if (m_flags & IntervalCalculated) {
+        calculateInterval();
+    }
+}
+
+
 void Function::addSegment(std::vector<sf::VertexArray>& lines, sf::VertexArray& current) {
+    
     if (current.getVertexCount() > 1) {
+        
         lines.push_back(current);
     }
+    
     current = sf::VertexArray(sf::PrimitiveType::LineStrip);
 }
 
+bool Function::hasVariable(const std::string& variable) const {
+    return m_environment.contains(variable);
+}
+
+
+void Function::setEnvironment(Environment env) {
+    m_environment = env;
+    if (m_flags & XPlot) {
+        m_environment["x"] = 0.0; // Ensure x is initialized for plotting
+    }
+}
+
+Environment& Function::getEnvironment() {
+    return m_environment;
+}
+
+void Function::initializeEnvironment() {
+    for (const auto& parameter : m_function->getParameters()) {
+        m_environment[parameter] = 0.0;
+    }
+}
+    
+
+void Function::setVariable(const std::string& variable, double value) {
+    m_environment[variable] = value;
+}
+
+void Function::setVariable(std::pair<std::string, double> variable) {
+    m_environment[variable.first] = variable.second;
+}
+
+void Function::setTime(double time) {
+    
+    if (hasVariable("t"))
+        setVariable("t", time);
+}
+
+
+void Function::setFlag(uint32_t flag) {
+    m_flags = flag;
+}
+
+void Function::addFlag(uint32_t flag) {
+    m_flags |= flag;
+}
+
+uint32_t Function::getFlags() const {
+    return m_flags;
+}
+
+
+std::vector<std::string> Function::getParameters() const {
+    
+    std::vector<std::string> parameters;
+    
+    if (m_function) {
+        
+        parameters = m_function->getParameters();
+    }
+    
+    for (int i = 0; i < parameters.size(); ++i) {
+        if (parameters[i] == "x") {
+            parameters.erase(parameters.begin() + i);
+        } else if (m_flags & TimeDependent && parameters[i] == "t") {
+            parameters.erase(parameters.begin() + i);
+        }
+    }
+    
+    return parameters;
+}
+
 void Function::calculateInterval() {
+    
     calculateInterval(m_environment);
 }
 
 void Function::calculateInterval(Environment env) {
     
-    double& x = env.at("x");
+    float& x = env.at("x");
     
     m_currentLine.clear();
     m_lines.clear();
@@ -144,7 +226,7 @@ void Function::adaptivePlot(sf::Vector2f p0, sf::Vector2f p1,
             return;
         }
 
-        double& xm = env.at("x");
+        float& xm = env.at("x");
         
         xm = (p0.x + p1.x) / 2.f;
         double ym = m_function->evaluate(env);
@@ -165,17 +247,3 @@ void Function::adaptivePlot(sf::Vector2f p0, sf::Vector2f p1,
         m_currentLine.append(sf::Vertex(m_scene.worldToScreen({p1.x, p1.y}), m_color));
     }
 }
-    
-
-void Function::setEnvironment(Environment env) {
-    m_environment = env;
-}
-
-void Function::setVariable(const std::string& variable, double value) {
-    m_environment[variable] = value;
-}
-
-void Function::setVariable(std::pair<std::string, double> variable) {
-    m_environment[variable.first] = variable.second;
-}
-

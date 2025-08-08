@@ -10,14 +10,16 @@
 
 #include <print>
 
+#include "imgui-SFML.h"
+
 #include "../Config.hpp"
 
 Application::Application()
     : m_window(sf::VideoMode(config::window::resolution), config::window::title),
       m_renderer(m_window),
       m_font("assets/Arial.ttf"),
-      m_hud(m_font),
-      m_scene(m_font, m_clock),
+      m_scene(m_font, m_clock, *this),
+      m_hud(m_window, m_scene, m_font),
       m_eventHandler(m_window, m_scene),
       m_zoomHandler(m_eventHandler) {
     initialize();
@@ -40,12 +42,16 @@ void Application::initialize() {
     
     std::string windowTitle = config::window::title;
     InitTrackpadZoom(&m_zoomHandler, windowTitle.c_str());
+    
+    m_renderer.initImGui();
 }
 
 void Application::run() {
     sf::Clock frameClock;
     uint64_t frameCount = 0;
     float deltaTime = 0;
+    
+    sf::Clock deltaClock;
 
     while (m_window.isOpen()) {
         deltaTime += frameClock.restart().asSeconds();
@@ -56,6 +62,8 @@ void Application::run() {
             frameCount = 0;
             deltaTime = 0;
         }
+        
+        ImGui::SFML::Update(m_window, deltaClock.restart());
 
         processEvents();
         update();
@@ -76,11 +84,18 @@ void Application::update() {
 }
 
 void Application::render() {
+    
     m_window.clear();
 
     m_renderer.draw(m_scene);
     m_renderer.draw(m_hud);
     m_renderer.drawAll();
-
+    
+    ImGui::SFML::Render(m_window);
+    
     m_window.display();
+}
+
+void Application::refreshParameterHUDs() {
+    m_hud.refreshParameterHUDs();
 }

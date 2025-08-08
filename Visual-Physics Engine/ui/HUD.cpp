@@ -7,10 +7,15 @@
 
 #include "HUD.hpp"
 
+#include <print>
+
 #include "../Config.hpp"
 #include "../core/Scene.hpp"
 
-HUD::HUD(const sf::Font& font) : m_font(font) {
+HUD::HUD(sf::RenderWindow& window, Scene& m_scene, const sf::Font& font) :
+        m_window(window),
+        m_font(font),
+        m_scene(m_scene) {
     initialize();
 }
 
@@ -26,6 +31,10 @@ void HUD::draw(sf::RenderTarget& target, sf::RenderStates states) const {
     for (const auto& element : m_elements) {
         target.draw(*element.second, states);
     }
+    
+    for (const auto& parameterHUD : m_parameterHUDs) {
+        parameterHUD.draw();
+    }
 }
 
 void HUD::setText(const std::string& key, const std::string& text) {
@@ -35,5 +44,12 @@ void HUD::setText(const std::string& key, const std::string& text) {
         if (auto textElement = dynamic_cast<sf::Text*>(drawable.get())) {
             textElement->setString(text);
         }
+    }
+}
+
+void HUD::refreshParameterHUDs() {
+    m_parameterHUDs.clear();
+    for (int i = 0; i < m_scene.getFunctionCount(); ++i) {
+        m_parameterHUDs.emplace_back(m_window, m_scene.getFunction(i));
     }
 }

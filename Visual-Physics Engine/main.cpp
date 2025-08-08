@@ -8,6 +8,8 @@
 #include <iostream>
 
 #include <SFML/Graphics.hpp>
+#include "imgui.h"
+#include "imgui-SFML.h"
 
 #include "core/Application.hpp"
 
@@ -19,6 +21,8 @@ int main(int argc, const char * argv[]) {
     } catch (const std::exception& e) {
         std::cerr << "An error occurred: " << e.what() << std::endl;
     }
+    
+    ImGui::SFML::Shutdown();
     
     return EXIT_SUCCESS;
 }

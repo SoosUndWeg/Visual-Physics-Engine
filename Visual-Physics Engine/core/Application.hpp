@@ -26,6 +26,8 @@ public:
 
     
     const sf::Font& getFont() const;
+    
+    void refreshParameterHUDs();
 
 private:
     void initialize();

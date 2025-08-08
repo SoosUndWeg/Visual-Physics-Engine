@@ -13,6 +13,8 @@
 class Renderer {
 public:
     Renderer(sf::RenderWindow& window);
+    
+    void initImGui();
 
     void draw(std::shared_ptr<sf::Drawable> drawable);
     void draw(const sf::Drawable& drawable);

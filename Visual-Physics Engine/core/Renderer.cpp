@@ -4,11 +4,18 @@
 //
 //  Created by Kilian Brecht on 03.08.25.
 //
-
 #include "Renderer.hpp"
+
+#include "imgui-SFML.h"
 
 Renderer::Renderer(sf::RenderWindow& window)
     : m_window(window) {}
+
+void Renderer::initImGui() {
+    if (!ImGui::SFML::Init(m_window, true)) {
+        throw std::runtime_error("Failed to initialize ImGui-SFML");
+    }
+}
 
 void Renderer::draw(std::shared_ptr<sf::Drawable> drawable) {
     m_drawables.push_back(drawable);

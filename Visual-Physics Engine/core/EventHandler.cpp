@@ -7,6 +7,8 @@
 
 #include "EventHandler.hpp"
 
+#include "imgui-SFML.h"
+
 #include "../Config.hpp"
 #include "Scene.hpp"
 
@@ -15,7 +17,11 @@ EventHandler::EventHandler(sf::RenderWindow& window, Scene& scene) : m_window(wi
 
 
 void EventHandler::pollEvents() {
+        
+    
     while (std::optional<sf::Event> eventOpt = m_window.pollEvent()) {
+        ImGui::SFML::ProcessEvent(m_window, *eventOpt);
+        
         if (eventOpt) {
             handleEvent(*eventOpt);
         }
@@ -64,6 +70,7 @@ void EventHandler::subscribe(Listener listener, std::function<void()> callback) 
 
 void EventHandler::windowClosed() {
     m_window.close();
+    
 }
 
 

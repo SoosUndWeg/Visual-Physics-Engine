@@ -20,17 +20,44 @@ class Scene;
 
 class Function : public sf::Drawable {
 public:
+    enum Flag : uint32_t {
+        None = 0,
+        IntervalCalculated = 1 << 0,
+        TimeDependent = 1 << 1,
+        NoParameters = 1 << 2,
+        Animated = 1 << 3,
+        XPlot = 1 << 4
+    };
+public:
     Function(const std::string& name, const std::string& expression, Scene& scene, sf::Color color = sf::Color::Green);
 
     void draw(sf::RenderTarget& target, sf::RenderStates states) const override;
+    
+    void update();
+    
 
     void calculateInterval();
     void calculateInterval(Environment env);
     
     void setEnvironment(Environment env);
+    Environment& getEnvironment();
+    void initializeEnvironment();
+    
+    bool hasVariable(const std::string& variable) const;
     
     void setVariable(const std::string& variable, double value);
     void setVariable(std::pair<std::string, double> variable);
+    
+    void setTime(double time);
+    
+    void setFlag(uint32_t flag);
+    void addFlag(uint32_t flag);
+    uint32_t getFlags() const;
+    
+    std::string getName() const { return m_name; }
+    
+    std::vector<std::string> getParameters() const;
+        
         
 
 private:
@@ -44,6 +71,7 @@ private:
     Environment m_environment;
 
     std::unique_ptr<FunctionHeaderNode> m_function;
+    uint32_t m_flags = None;
 
     Parser m_parser;
     Scene& m_scene;

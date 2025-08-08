@@ -7,15 +7,18 @@
 
 #include "Scene.hpp"
 
+#include <print>
+
 #include "../Config.hpp"
 #include "EventHandler.hpp"
+#include "Application.hpp"
 
-Scene::Scene(sf::Font& font, sf::Clock& clock) : m_translationVector({0, 0}),
+Scene::Scene(sf::Font& font, sf::Clock& clock, Application& application) :
+                                     m_translationVector({0, 0}),
                                      m_scaleVector({1.f, 1.f}),
                                      m_clock(clock),
-                                     m_coordinateSystem(font, *this),
-                                     m_function1("f", "f(x, t) = sin(x * sin(t))", *this, sf::Color::Green),
-                                     m_function2("g", "g(x,t) = sin(x^2 * cos(t))", *this, sf::Color::Red) {
+                                     m_application(application),
+                                     m_coordinateSystem(font, *this) {
     initialize();
 }
 
@@ -25,13 +28,29 @@ void Scene::draw(sf::RenderTarget& target, sf::RenderStates states) const {
     for (const auto& shape : m_shapes) {
         target.draw(*shape, states);
     }
-
-    target.draw(m_function1, states);
-    target.draw(m_function2, states);
+    
+    for (const auto& function : m_functions) {
+        target.draw(*function, states);
+    }
 }
 
 void Scene::initialize() {
     m_shapes.clear();
+    m_functions.clear();
+    
+    m_functions.push_back(std::make_shared<Function>("f", "f(x, t) = sin(x * sin(t))", *this, sf::Color::Green));
+    m_functions.back()->setFlag(Function::Flag::TimeDependent |
+                                Function::Flag::Animated |
+                                Function::Flag::NoParameters |
+                                Function::Flag::IntervalCalculated);
+    m_functions.back()->initializeEnvironment();
+    
+    m_functions.push_back(std::make_shared<Function>("g", "g(x, m, n, o) = m * x^2 + n * x + o", *this, sf::Color::Red));
+    m_functions.back()->setFlag(Function::Flag::Animated |
+                                Function::Flag::IntervalCalculated);
+    m_functions.back()->initializeEnvironment();
+    
+    m_application.refreshParameterHUDs();
     
     m_coordinateSystem.update();
 }
@@ -50,13 +69,15 @@ void Scene::update() {
 }
 
 void Scene::updateGraph() {
-    std::unordered_map<std::string, double> map ({
-        {"t", static_cast<double>(m_clock.getElapsedTime().asSeconds())},
-        {"x", 0.0}
-    });
-    m_function1.calculateInterval(map);
-
-    m_function2.calculateInterval(map);
+    
+    for (auto& function : m_functions) {
+        
+        if (function->getFlags() & Function::Flag::TimeDependent) {
+            function->setTime(m_clock.getElapsedTime().asSeconds());
+        }
+        
+        function->update();
+    }
 }
 
 void Scene::addShape(std::unique_ptr<sf::Drawable> shape) {
@@ -80,6 +101,47 @@ void Scene::setTranslation(sf::Vector2f translation) {
 sf::Vector2f Scene::getViewSize() const {
     return sf::Vector2f({static_cast<float>(config::window::resolution.x) / m_scaleVector.x / config::window::pixelPerWorldUnit,
                          static_cast<float>(config::window::resolution.y) / m_scaleVector.y / config::window::pixelPerWorldUnit});
+}
+
+size_t Scene::getFunctionCount() const {
+    if (m_functions.empty()) {
+        std::print("Warning: No functions available in the scene.\n");
+        return 0;
+    }
+    return m_functions.size();
+}
+
+std::shared_ptr<Function> Scene::getFunction(const std::string& name) {
+    
+    if (m_functions.empty()) {
+        throw std::runtime_error("No functions available in the scene.");
+    }
+    
+    for (auto& function : m_functions) {
+        
+        if (function->getName() == name) {
+            
+            return function;
+        }
+    }
+    
+    return m_functions.front();
+}
+
+std::shared_ptr<Function> Scene::getFunction(size_t index) {
+    if (index >= m_functions.size()) {
+        throw std::out_of_range("Index out of range for functions in the scene.");
+    }
+    
+    if (m_functions.empty()) {
+        throw std::runtime_error("No functions available in the scene.");
+    }
+    
+    if (!m_functions[index]) {
+        throw std::runtime_error("Function at index " + std::to_string(index) + " is not initialized.");
+    }
+    
+    return m_functions[index];
 }
 
 void Scene::scale(sf::Vector2f factor) {

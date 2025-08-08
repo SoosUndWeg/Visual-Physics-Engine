@@ -14,7 +14,7 @@
 #include <vector>
 #include <functional>
 
-using Environment = std::unordered_map<std::string, double>;
+using Environment = std::unordered_map<std::string, float>;
 
 struct ASTNode {
 
@@ -114,6 +114,7 @@ struct FunctionHeaderNode : public ASTNode {
 
     void setBody(std::unique_ptr<ASTNode> newBody);
     std::size_t getParameterCount() const;
+    std::vector<std::string> getParameters() const { return parameters; }
 
     double evaluateWithParameters(const std::vector<double>& args) const;
 };
