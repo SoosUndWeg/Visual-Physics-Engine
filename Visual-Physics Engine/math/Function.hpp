@@ -8,6 +8,8 @@
 #ifndef FUNCTION_HPP
 #define FUNCTION_HPP
 
+#include <atomic>
+
 
 #include <SFML/Graphics.hpp>
 
@@ -16,6 +18,7 @@
 
 
 class Scene;
+class ThreadManager;
 
 
 class Function : public sf::Drawable {
@@ -30,7 +33,7 @@ public:
         Waveform = 1 << 5
     };
 public:
-    Function(const std::string& name, const std::string& expression, Scene& scene, sf::Color color = sf::Color::Green);
+    Function(const std::string& name, const std::string& expression, Scene& scene, ThreadManager& threadManager, sf::Color color = sf::Color::Green);
 
     void draw(sf::RenderTarget& target, sf::RenderStates states) const override;
     
@@ -66,7 +69,8 @@ private:
     void calculateWave(Environment env);
     
     void addSegment(std::vector<sf::VertexArray>& lines, sf::VertexArray& current);
-    void adaptivePlot(std::string key, sf::Vector2f p0, sf::Vector2f p1, sf::Vector2f offset, int depth, int maxDepth, Environment env);
+    std::vector<sf::VertexArray> adaptivePlot(std::string key, sf::Vector2f p0, sf::Vector2f p1, sf::Vector2f offset, int depth, int maxDepth, Environment env);
+    void adaptivePlot(std::string key, sf::Vector2f p0, sf::Vector2f p1, sf::Vector2f offset, int depth, int maxDepth, Environment env, std::vector<sf::VertexArray>& lines, sf::VertexArray& currentLine);
 
 private:
     std::string m_name;
@@ -86,6 +90,10 @@ private:
     sf::Color m_color;
     
     bool m_graphDirty = true;
+    
+    ThreadManager& m_threadManager;
+    
+    std::atomic<int> m_emptyCount{0};
 };
 
 #endif // FUNCTION_HPP

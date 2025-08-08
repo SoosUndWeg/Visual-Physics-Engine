@@ -9,6 +9,8 @@
 
 #include <print>
 
+#include "ImGui.h"
+
 #include "../Config.hpp"
 #include "../core/Scene.hpp"
 
@@ -52,4 +54,48 @@ void HUD::refreshParameterHUDs() {
     for (int i = 0; i < m_scene.getFunctionCount(); ++i) {
         m_parameterHUDs.emplace_back(m_window, m_scene.getFunction(i));
     }
+}
+
+
+// ***** ParameterHUD *****
+
+
+ParameterHUD::ParameterHUD(sf::RenderWindow& window, std::shared_ptr<Function> function) : m_window(window), m_function(function) {
+    
+    initialize();
+}
+    
+void ParameterHUD::initialize() {
+    if (m_function && m_function->getFlags() & Function::Flag::NoParameters) {
+        return;
+    }
+    
+    Environment& env = m_function->getEnvironment();
+    for (auto& parameter : m_function->getParameters()) {
+        
+        if (m_function->getFlags() & Function::Flag::TimeDependent && parameter == "t")
+            continue;
+        
+        m_parameters.push_back({std::string(parameter), env[parameter]});
+    }
+}
+
+void ParameterHUD::draw() const {
+    if (m_function && m_function->getFlags() & Function::Flag::NoParameters) {
+        return;
+    }
+    
+    ImGui::Begin("Parameter HUD");
+    ImGui::Separator();
+    
+    ImGui::Text("Function: %s", m_function->getName().c_str());
+    
+    for (auto& parameter : m_parameters) {
+        std::string label = std::format("{}: {:.2f}", parameter.first, parameter.second);
+        
+        ImGui::InputFloat(label.c_str(), &parameter.second);
+    }
+
+    
+    ImGui::End();
 }

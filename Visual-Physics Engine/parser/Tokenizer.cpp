@@ -63,10 +63,6 @@ void Tokenizer::tokenize() {
             
         }
     }
-    
-    for (auto& token : m_tokens) {
-        std::print("Token {} of Type {}\n", token.first, static_cast<int>(token.second));
-    }
 }
 
 const std::vector<std::pair<std::string, Tokenizer::TokenType>>& Tokenizer::getTokens() const {

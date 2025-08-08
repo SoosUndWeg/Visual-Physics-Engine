@@ -12,6 +12,7 @@
 #include "../Config.hpp"
 #include "EventHandler.hpp"
 #include "Application.hpp"
+#include "ThreadManager.hpp"
 
 Scene::Scene(sf::Font& font, sf::Clock& clock, Application& application) :
                                      m_translationVector({0, 0}),
@@ -38,14 +39,14 @@ void Scene::initialize() {
     m_shapes.clear();
     m_functions.clear();
     
-    m_functions.push_back(std::make_shared<Function>("f", "f(x, t) = sin(x * sin(t))", *this, sf::Color::Green));
+    m_functions.push_back(std::make_shared<Function>("f", "f(x, t) = sin(x * sin(t))", *this, m_threadManager, sf::Color::Green));
     m_functions.back()->setFlag(Function::Flag::TimeDependent |
                                 Function::Flag::Animated |
                                 Function::Flag::NoParameters |
                                 Function::Flag::IntervalCalculated);
     m_functions.back()->initializeEnvironment();
     
-    m_functions.push_back(std::make_shared<Function>("g", "g(a, b, t) = a * cos(t) * sin(b * t)", *this, sf::Color::Red));
+    m_functions.push_back(std::make_shared<Function>("g", "g(a, b, t) = a * cos(t) * sin(b * t)", *this, m_threadManager, sf::Color::Red));
     m_functions.back()->setFlag(Function::Flag::Animated |
                                 Function::Flag::Waveform |
                                 Function::Flag::TimeDependent);

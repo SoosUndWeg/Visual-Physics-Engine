@@ -14,6 +14,7 @@
 #include "../Config.hpp"
 #include "../ui/CoordinateSystem.hpp"
 #include "../math/Function.hpp"
+#include "ThreadManager.hpp"
 
 
 class Application;
@@ -81,6 +82,8 @@ private:
     bool m_graphDirty = true;
     
     bool m_playTime = true;
+    
+    ThreadManager m_threadManager;
 };
 
 #endif // SCENE_HPP

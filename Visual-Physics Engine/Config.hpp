@@ -45,7 +45,7 @@ namespace config {
         constexpr int coarseSteps = 1000;
         constexpr int cutoff = 1e3;
         constexpr float deltaMaxPercent = 0.02f;
-        constexpr int maxDepth = 10;
+        constexpr int maxDepth = 20;
         constexpr float deltaMinMultiplier = 2.0f;
     }
 }

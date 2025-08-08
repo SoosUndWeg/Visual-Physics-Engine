@@ -8,16 +8,22 @@
 #include "Function.hpp"
 
 #include <iostream>
+#include <future>
+#include <print>
+
+#include <SFML/Graphics/VertexArray.hpp>
 
 #include "../Config.hpp"
 #include "../core/Scene.hpp"
+#include "../core/ThreadManager.hpp"
 
 
-Function::Function(const std::string& name, const std::string& expression, Scene& scene, sf::Color color) :
+Function::Function(const std::string& name, const std::string& expression, Scene& scene, ThreadManager& threadManager, sf::Color color) :
     m_name(name),
     m_expression(expression),
     m_color(color),
-    m_scene(scene) {
+    m_scene(scene),
+    m_threadManager(threadManager) {
         
     m_parser.setExpression(expression);
 
@@ -59,8 +65,7 @@ void Function::update() {
 
 
 void Function::addSegment(std::vector<sf::VertexArray>& lines, sf::VertexArray& current) {
-    
-    if (current.getVertexCount() > 1) {
+    if (current.getVertexCount() >= 1) {
         
         lines.push_back(current);
     }
@@ -156,16 +161,23 @@ void Function::calculateInterval(Environment env) {
     sf::Vector2f worldOrigin = m_scene.getTranslation();
     sf::Vector2f viewSize = m_scene.getViewSize();
 
-    double xMin = worldOrigin.x - viewSize.x;
-    double xMax = worldOrigin.x + viewSize.x;
+    double xMin = (worldOrigin.x - viewSize.x);
+    double xMax = (worldOrigin.x + viewSize.x);
     
+    /*
     double gridLength = viewSize.x / config::function::coarseSteps;
     int nSteps = static_cast<int>((xMax - xMin) / gridLength);
+     */
+    int nSteps = static_cast<int>(m_threadManager.getThreadCount()) * 20;
+    double gridLength = (xMax - xMin) / nSteps;
+    std::print("Function::calculateInterval: nSteps = {}, gridLength = {}\n", nSteps, m_scene.worldToScreen({static_cast<float>(gridLength), 0}).x);
     
     bool lastValid = false;
     
     double lastWorldX = xMin;
     double lastWorldY = m_function->evaluate(env);
+    
+    std::vector<std::future<std::vector<sf::VertexArray>>> futures;
 
     for (int i = 1; i <= nSteps; ++i) {
         
@@ -180,8 +192,22 @@ void Function::calculateInterval(Environment env) {
             
         } else if (lastValid && valid) {
             
-            adaptivePlot("x", sf::Vector2f(lastWorldX, lastWorldY), sf::Vector2f(x, y), {0.f, 0.f}, 0, config::function::maxDepth, env);
+            double xCopy = x;
+            double yCopy = y;
+            double lastWorldXCopy = lastWorldX;
+            double lastWorldYCopy = lastWorldY;
             
+            Environment envCopy = env;
+            
+            futures.push_back(m_threadManager.enqueue([=, this]() mutable {
+                
+                std::vector<sf::VertexArray> result = adaptivePlot("t", sf::Vector2f(lastWorldXCopy, lastWorldYCopy), sf::Vector2f(xCopy, yCopy), {0.f, 0.f}, 0, config::function::maxDepth, envCopy);
+                
+                return result;
+            }));
+            /*
+            adaptivePlot("x", sf::Vector2f(lastWorldX, lastWorldY), sf::Vector2f(x, y), {0.f, 0.f}, 0, config::function::maxDepth, env);
+            */
         } else if (lastValid && !valid) {
             
             addSegment(m_lines, m_currentLine);
@@ -193,6 +219,28 @@ void Function::calculateInterval(Environment env) {
         lastWorldY = y;
     }
     addSegment(m_lines, m_currentLine);
+    
+    for (auto& fut : futures) {
+        auto result = fut.get();
+        for (auto& arr : result) {
+            addSegment(m_lines, arr);
+        }
+    }
+    
+    sf::VertexArray merged(sf::PrimitiveType::LineStrip);
+    for (auto& line : m_lines) {
+        for (size_t i = 0; i < line.getVertexCount(); ++i) {
+            merged.append(line[i]);
+        }
+    }
+    m_lines.clear();
+    m_lines.push_back(merged);
+    
+    std::print("-->Finished calculating {} intervals for function '{}'\n", m_lines.size(), m_name);
+    std::print("-->{} empty segments\n", m_emptyCount.load());
+    std::print("-->Size of merged line: {}\n", m_lines[0].getVertexCount());
+    m_emptyCount = 0; // Reset empty count after plotting
+    
 }
 
 
@@ -212,16 +260,23 @@ void Function::calculateWave(Environment env) {
     double tauMin = std::max(0.0, static_cast<double>(t + worldOrigin.x - viewSize.x));
     double tauMax = t;
     
-    double tau = tauMin;
+    double tau;
 
+    /*
     double gridLength = viewSize.x / config::function::coarseSteps;
-    int nSteps = static_cast<int>((tauMax - tauMin) / gridLength);
+    int nSteps = static_cast<int>((xMax - xMin) / gridLength);
+     */
+    int nSteps = static_cast<int>(m_threadManager.getThreadCount()) * 20;
+    double gridLength = (tauMax - tauMin) / nSteps;
+    std::print("Function::calculateWave: nSteps = {}, gridLength = {}\n", nSteps, m_scene.worldToScreen({static_cast<float>(gridLength), 0}).x);
 
     bool lastValid = false;
     double lastT = t, lastY = m_function->evaluate(env);
 
     m_currentLine.clear();
     m_lines.clear();
+    
+    std::vector<std::future<std::vector<sf::VertexArray>>> futures;
 
     for (int i = 0; i < nSteps; ++i) {
         tau = tauMin + i * gridLength;
@@ -239,7 +294,21 @@ void Function::calculateWave(Environment env) {
         if (!lastValid && valid) {
             m_currentLine.append(sf::Vertex(m_scene.worldToScreen(sf::Vector2f(t - tauMax, y)), m_color));
         } else if (lastValid && valid) {
+            
+            double tauMaxCopy = tauMax;
+            Environment envCopy = env;
+            
+            futures.push_back(
+                              m_threadManager.enqueue([=, this]() mutable {
+                    std::vector<sf::VertexArray> result = adaptivePlot("t", sf::Vector2f(lastT, lastY), sf::Vector2f(t, y), {- static_cast<float>(tauMaxCopy),0.f}, 0, config::function::maxDepth, envCopy);
+                    
+                    return result;
+                }));
+            /*
             adaptivePlot("t", sf::Vector2f(lastT, lastY), sf::Vector2f(t, y), {- static_cast<float>(tauMax),0.f}, 0, config::function::maxDepth, env);
+            */
+            
+            
         } else if (lastValid && !valid) {
             addSegment(m_lines, m_currentLine);
         }
@@ -248,22 +317,52 @@ void Function::calculateWave(Environment env) {
         lastT = t;
         lastY = y;
     }
-    addSegment(m_lines, m_currentLine);
+    
+    for (auto& fut : futures) {
+        auto result = fut.get();
+        for (auto& arr : result) {
+            addSegment(m_lines, arr);
+        }
+    }
+    
+    sf::VertexArray merged(sf::PrimitiveType::LineStrip);
+    for (auto& line : m_lines) {
+        for (size_t i = 0; i < line.getVertexCount(); ++i) {
+            merged.append(line[i]);
+        }
+    }
+    m_lines.clear();
+    m_lines.push_back(merged);
+    
+    std::print("-->Finished calculating {} intervals for function '{}'\n", m_lines.size(), m_name);
+    std::print("-->{} empty segments\n", m_emptyCount.load());
+    std::print("-->Size of merged line: {}\n", m_lines[0].getVertexCount());
+    m_emptyCount = 0; // Reset empty count after plotting
 }
 
 
-void Function::adaptivePlot(std::string key, sf::Vector2f p0, sf::Vector2f p1, sf::Vector2f offset, int depth, int maxDepth, Environment env) {
+std::vector<sf::VertexArray> Function::adaptivePlot(std::string key, sf::Vector2f p0, sf::Vector2f p1, sf::Vector2f offset, int depth, int maxDepth, Environment env) {
+    
+    // Local variables for thread safety
+    std::vector<sf::VertexArray> lines;
+    sf::VertexArray currentLine(sf::PrimitiveType::LineStrip);
     
     sf::Vector2f viewSize = m_scene.getViewSize();
     
-    double deltaYMax = viewSize.y * config::function::deltaMaxPercent;
-    double deltaXMin = viewSize.x * config::function::deltaMinMultiplier;
+    double deltaYMax = static_cast<double>(viewSize.y) * config::function::deltaMaxPercent;
+    double deltaXMin = static_cast<double>(viewSize.x) * config::function::deltaMinMultiplier;
     
     if (depth >= maxDepth) {
         
-        m_currentLine.append(sf::Vertex(m_scene.worldToScreen({(p1.x + offset.x), p1.y + offset.y}), m_color));
+        currentLine.append(sf::Vertex(m_scene.worldToScreen({(p1.x + offset.x), p1.y + offset.y}), m_color));
         
-        return;
+        if (currentLine.getVertexCount() >= 1) {
+            lines.push_back(currentLine);
+        } else {
+            m_emptyCount++;
+        }
+        
+        return lines;
     }
 
     if (std::abs(p1.y - p0.y) > deltaYMax || std::abs(p1.x - p0.x) > deltaXMin) {
@@ -273,26 +372,26 @@ void Function::adaptivePlot(std::string key, sf::Vector2f p0, sf::Vector2f p1, s
             std::abs(p1.y) > config::function::cutoff &&
             p0.y * p1.y < 0) {
 
-            addSegment(m_lines, m_currentLine);
-            return;
+            addSegment(lines, currentLine);
+            return lines;
         }
         
         // Polstelle
         if (std::abs(p1.y - p0.y) > deltaYMax &&
            (std::abs(p0.y) > config::function::cutoff || std::abs(p1.y) > config::function::cutoff)) {
             
-            addSegment(m_lines, m_currentLine);
-            return;
+            addSegment(lines, currentLine);
+            return lines;
         }
         
         // Polstelle
         if (std::abs(p1.y - p0.y) > deltaYMax * 200 &&
             std::abs((p1.y - p0.y) / (p1.x - p0.x)) > deltaYMax * 100) {
             
-            addSegment(m_lines, m_currentLine);
-            return;
+            addSegment(lines, currentLine);
+            return lines;
         }
-
+        
         float& xm = env.at(key);
         
         xm = (p0.x + p1.x) / 2.f;
@@ -300,17 +399,100 @@ void Function::adaptivePlot(std::string key, sf::Vector2f p0, sf::Vector2f p1, s
         
         if (std::isnan(ym) || std::isinf(ym)) {
             
-            addSegment(m_lines, m_currentLine);
-            return;
+            addSegment(lines, currentLine);
+            return lines;
         }
         
         sf::Vector2f mid(xm, ym);
+        std::vector<sf::VertexArray> localResult;
         
-        adaptivePlot(key, p0, mid, offset, depth + 1, maxDepth, env);
-        adaptivePlot(key, mid, p1, offset, depth + 1, maxDepth, env);
+        adaptivePlot(key, p0, mid, offset, depth + 1, maxDepth, env, lines, currentLine);
         
+        adaptivePlot(key, mid, p1, offset, depth + 1, maxDepth, env, lines, currentLine);
+
     } else {
         
-        m_currentLine.append(sf::Vertex(m_scene.worldToScreen({(p1.x + offset.x), p1.y + offset.y}), m_color));
+        currentLine.append(sf::Vertex(m_scene.worldToScreen({(p1.x + offset.x), p1.y + offset.y}), m_color));
+    }
+    
+    if (currentLine.getVertexCount() >= 1) {
+        lines.push_back(currentLine);
+    } else {
+        m_emptyCount++;
+    }
+    return lines;
+}
+
+void Function::adaptivePlot(std::string key, sf::Vector2f p0, sf::Vector2f p1, sf::Vector2f offset, int depth, int maxDepth, Environment env, std::vector<sf::VertexArray> &lines, sf::VertexArray &currentLine) {
+    
+    sf::Vector2f viewSize = m_scene.getViewSize();
+    
+    double deltaYMax = static_cast<double>(viewSize.y) * config::function::deltaMaxPercent;
+    double deltaXMin = static_cast<double>(viewSize.x) * config::function::deltaMinMultiplier;
+    
+    if (depth >= maxDepth) {
+        
+        currentLine.append(sf::Vertex(m_scene.worldToScreen({(p1.x + offset.x), p1.y + offset.y}), m_color));
+        
+        if (currentLine.getVertexCount() >= 1) {
+            lines.push_back(currentLine);
+        } else {
+            m_emptyCount++;
+        }
+    }
+
+    if (std::abs(p1.y - p0.y) > deltaYMax || std::abs(p1.x - p0.x) > deltaXMin) {
+        /*
+        // Polstelle
+        if (std::abs(p0.y) > config::function::cutoff &&
+            std::abs(p1.y) > config::function::cutoff &&
+            p0.y * p1.y < 0) {
+
+            addSegment(lines, currentLine);
+        }
+        
+        // Polstelle
+        if (std::abs(p1.y - p0.y) > deltaYMax &&
+           (std::abs(p0.y) > config::function::cutoff || std::abs(p1.y) > config::function::cutoff)) {
+            
+            addSegment(lines, currentLine);
+        }
+        
+        // Polstelle
+        if (std::abs(p1.y - p0.y) > deltaYMax * 200 &&
+            std::abs((p1.y - p0.y) / (p1.x - p0.x)) > deltaYMax * 100) {
+            
+            addSegment(lines, currentLine);
+        }
+        */
+        float& xm = env.at(key);
+        
+        xm = (p0.x + p1.x) / 2.f;
+        double ym = m_function->evaluate(env);
+        
+        if (std::isnan(ym) || std::isinf(ym)) {
+            
+            addSegment(lines, currentLine);
+        }
+        
+        sf::Vector2f mid(xm, ym);
+        std::vector<sf::VertexArray> localResult;
+        
+        localResult = adaptivePlot(key, p0, mid, offset, depth + 1, maxDepth, env);
+        lines.insert(lines.end(), localResult.begin(), localResult.end());
+        
+        localResult = adaptivePlot(key, mid, p1, offset, depth + 1, maxDepth, env);
+        lines.insert(lines.end(), localResult.begin(), localResult.end());
+
+    } else {
+        
+        currentLine.append(sf::Vertex(m_scene.worldToScreen({(p1.x + offset.x), p1.y + offset.y}), m_color));
+    }
+    
+    if (currentLine.getVertexCount() >= 1) {
+        lines.push_back(currentLine);
+    } else {
+        m_emptyCount++;
     }
 }
+

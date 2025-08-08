@@ -10,9 +10,13 @@
 
 #include <SFML/Graphics.hpp>
 
-#include "ParameterHUD.hpp"
+
 
 class Scene;
+class Function;
+class ParameterHUD;
+
+
 
 class HUD : public sf::Drawable {
 public:
@@ -35,6 +39,26 @@ private:
     Scene& m_scene;
     
     std::vector<ParameterHUD> m_parameterHUDs;
+};
+
+
+
+class ParameterHUD {
+public:
+    
+    ParameterHUD(sf::RenderWindow& window, std::shared_ptr<Function> function);
+
+    void initialize();
+    
+    void draw() const;
+    
+
+private:
+    sf::RenderWindow& m_window;
+    
+    std::shared_ptr<Function> m_function;
+    
+    std::vector<std::pair<std::string, float&>> m_parameters;
 };
 
 #endif // HUD_HPP
